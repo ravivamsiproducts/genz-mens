@@ -65,11 +65,43 @@
         <h2 id="modalName"></h2>
         <div class="price" id="modalPrice"></div>
         <p class="muted">Premium quality • Easy returns • Fast delivery</p>
-        <h4>Select Size</h4>
+        <div class="size-heading">
+          <h4>Select Size</h4>
+          <button class="size-chart-btn" type="button" onclick="openSizeChart()">📏 Size Chart</button>
+        </div>
         <div class="sizes" id="sizes">
           <button>S</button><button>M</button><button>L</button><button>XL</button><button>XXL</button>
         </div>
         <button class="primary-btn full" onclick="addCurrentToCart()">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="sizeChartModal">
+    <div class="modal-box size-chart-box">
+      <button class="close" onclick="closeSizeChart()">×</button>
+      <p class="eyebrow">FIT GUIDE</p>
+      <h2>Shirt Size Chart</h2>
+      <p class="muted">Default reference measurements</p>
+      <div class="size-chart-content">
+        <div class="measurement-diagram">
+          <img src="shirt-measurement-reference.jpg" alt="Shirt measurement reference diagram">
+        </div>
+        <div class="measurement-table-wrap">
+          <table class="measurement-table">
+            <thead><tr><th>S.No.</th><th>Measurement</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Chest</td><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td></tr>
+              <tr><td>2</td><td>Body Length (HPS)</td><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td></tr>
+              <tr><td>3</td><td>Sleeve Length</td><td>7</td><td>7.5</td><td>8</td><td>8.5</td><td>9</td></tr>
+              <tr><td>4</td><td>Sleeve Open</td><td>6.25</td><td>6.5</td><td>6.75</td><td>7</td><td>7.25</td></tr>
+              <tr><td>5</td><td>Shoulder</td><td>16</td><td>17</td><td>18</td><td>18.5</td><td>18.75</td></tr>
+              <tr><td>6</td><td>Neck Width</td><td>7.75</td><td>8</td><td>8.25</td><td>8.5</td><td>8.75</td></tr>
+              <tr><td>7</td><td>RIB Width</td><td colspan="5">3/4</td></tr>
+            </tbody>
+          </table>
+          <p class="measurement-note">Default reference values. Product-specific measurements can be updated later.</p>
+        </div>
       </div>
     </div>
   </div>
