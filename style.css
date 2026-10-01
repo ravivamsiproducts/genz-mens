@@ -107,11 +107,11 @@ footer small{color:#8f99aa}
 
 /* Cart quantity controls */
 .cart-product-info{min-width:180px;flex:1}
-.cart-qty{display:flex;align-items:center;gap:8px;margin-top:8px}
+.cart-qty{display:flex;align-items:center;justify-content:flex-start;gap:5px;margin-top:8px}
 .cart-qty button{width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:7px;cursor:pointer;font-size:18px;font-weight:800}
 .cart-qty button:hover:not(:disabled){background:var(--blue);color:#fff;border-color:var(--blue)}
 .cart-qty button:disabled{opacity:.45;cursor:not-allowed}
-.cart-qty strong{min-width:22px;text-align:center}
+.cart-qty strong{min-width:22px;text-align:center;margin-left:0}
 .cart-qty span{font-size:11px;color:#8a94a6;margin-left:3px}
 .cart-price{min-width:75px;text-align:right}
 @media(max-width:550px){
