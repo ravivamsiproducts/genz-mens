@@ -12,11 +12,19 @@ const products = [
 ];
 
 let category="All";
-let cart=JSON.parse(localStorage.getItem("genzCart")||"[]").map(item=>({
-  id:item.id,
-  size:item.size,
-  qty:item.qty||1
-}));
+
+let cart=[];
+try{
+  const savedCart=JSON.parse(localStorage.getItem("genzCart")||"[]");
+  cart=Array.isArray(savedCart) ? savedCart.map(item=>({
+    id:item.id,
+    size:item.size,
+    qty:item.qty||1
+  })) : [];
+}catch(error){
+  localStorage.removeItem("genzCart");
+  cart=[];
+}
 let current=null;
 let selectedSize="M";
 let currentView=1;
