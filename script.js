@@ -488,7 +488,97 @@ function lookupPincode(){
 }
 
 
+let phoneVerified=false;
+let demoOtp="";
+
+function handlePhoneInput(){
+  const phone=document.getElementById("customerPhone");
+  const status=document.getElementById("phoneStatus");
+
+  phoneVerified=false;
+
+  if(status){
+    status.textContent="OTP verification will be connected to SMS service.";
+    status.className="phone-status";
+  }
+
+  const btn=document.getElementById("sendOtpBtn");
+  if(btn) btn.disabled=phone.value.replace(/\D/g,"").length!==10;
+}
+
+function sendOtp(){
+  const phone=document.getElementById("customerPhone");
+  const otpBox=document.getElementById("otpBox");
+  const status=document.getElementById("phoneStatus");
+
+  const value=phone.value.replace(/\D/g,"");
+
+  if(value.length!==10){
+    phone.reportValidity();
+    return;
+  }
+
+  // Demo-only UI flow. No real SMS is sent yet.
+  demoOtp=String(Math.floor(100000+Math.random()*900000));
+  otpBox.hidden=false;
+
+  status.textContent="OTP sent (demo mode). Connect an SMS provider for real delivery.";
+  status.className="phone-status loading";
+
+  console.info("Demo OTP:",demoOtp);
+}
+
+function verifyOtp(){
+  const input=document.getElementById("otpInput");
+  const status=document.getElementById("phoneStatus");
+
+  if(input.value===demoOtp && demoOtp){
+    phoneVerified=true;
+    status.textContent="✓ Mobile number verified";
+    status.className="phone-status success";
+    return;
+  }
+
+  phoneVerified=false;
+  status.textContent="Incorrect OTP. Please try again.";
+  status.className="phone-status error";
+}
+
 function placeOrder(event){
+
+  event.preventDefault();
+
+  const form=document.getElementById("checkoutForm");
+
+  if(!form.checkValidity()){
+    form.reportValidity();
+    return;
+  }
+
+  if(!phoneVerified){
+    alert("Please verify your mobile number with OTP before placing the order.");
+    return;
+  }
+
+  alert(
+    "Order details saved. Payment integration will be connected in the next phase."
+  );
+}
+
+document.getElementById("cartCount").textContent=
+  cart.reduce((sum,item)=>sum+(item.qty||1),0);
+
+renderProducts();
+
+
+function openSizeChart(){
+  document.getElementById("sizeChartModal").classList.add("show");
+}
+
+function closeSizeChart(){
+  document.getElementById("sizeChartModal").classList.remove("show");
+}
+
 
   event.preventDefault();
 
