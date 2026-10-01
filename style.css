@@ -79,3 +79,22 @@ footer{margin-top:30px;padding:40px 6%;background:#0b1220;color:#fff;display:fle
     right: 8px;
   }
 }
+
+
+/* Size chart */
+.size-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px}
+.size-heading h4{margin:0}
+.size-chart-btn{border:1px solid var(--blue);background:#fff;color:var(--blue);padding:8px 12px;border-radius:9px;font-weight:800;cursor:pointer}
+.size-chart-btn:hover{background:var(--blue);color:#fff}
+.size-chart-box{max-width:1100px}
+.size-chart-content{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start;margin-top:8px}
+.measurement-diagram{background:#f5f7fb;border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
+.measurement-diagram img{width:100%;max-height:420px;object-fit:contain;border-radius:10px}
+.measurement-table-wrap{overflow:auto}
+.measurement-table{width:100%;border-collapse:collapse;min-width:650px}
+.measurement-table th,.measurement-table td{border:1px solid #d8dfeb;padding:10px 9px;text-align:center}
+.measurement-table th{background:#10265f;color:#fff;font-weight:800}
+.measurement-table td:first-child,.measurement-table td:nth-child(2){font-weight:700;text-align:left}
+.measurement-table tr:nth-child(even) td{background:#f7f9fd}
+.measurement-note{font-size:12px;color:#6c778a;margin-top:10px}
+@media(max-width:700px){.size-chart-content{grid-template-columns:1fr}.measurement-diagram img{max-height:300px}.size-chart-box{padding:20px 14px}.size-heading{align-items:flex-start}.size-chart-btn{font-size:12px;padding:7px 9px}}
