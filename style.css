@@ -146,3 +146,8 @@ footer small{color:#8f99aa}
 .checkout-note{font-size:11px;color:#7a8496;margin-top:12px}
 @media(max-width:800px){.checkout-layout{grid-template-columns:1fr}.order-summary{order:-1}}
 @media(max-width:550px){.checkout-box{padding:18px 14px}.checkout-form,.order-summary{padding:15px}.form-grid{grid-template-columns:1fr}}
+
+.pin-status{display:block;margin-top:5px;font-size:11px;font-weight:600;color:#7a8496;line-height:1.4}
+.pin-status.loading{color:var(--blue)}
+.pin-status.success{color:#16834b}
+.pin-status.error{color:#d33}
