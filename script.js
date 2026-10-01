@@ -434,26 +434,12 @@ function renderCheckout(){
 }
 
 let pincodeLookupTimer=null;
-let pincodeLocations=[];
 
 function setPinStatus(message,type=""){
   const status=document.getElementById("pinStatus");
   if(!status) return;
   status.textContent=message;
   status.className="pin-status "+type;
-}
-
-function resetPincodeLocation(){
-  const select=document.getElementById("locationOption");
-  if(select){
-    select.innerHTML="<option value=\"\">Enter PIN first</option>";
-    select.disabled=true;
-  }
-  const city=document.getElementById("city");
-  const state=document.getElementById("state");
-  if(city) city.value="";
-  if(state) state.value="";
-  pincodeLocations=[];
 }
 
 function lookupPincode(){
@@ -464,10 +450,8 @@ function lookupPincode(){
   input.value=pincode;
   clearTimeout(pincodeLookupTimer);
 
-  resetPincodeLocation();
-
   if(pincode.length<6){
-    setPinStatus("Enter PIN to find matching locations.");
+    setPinStatus("PIN will help auto-fill City & State.");
     return;
   }
 
@@ -483,50 +467,24 @@ function lookupPincode(){
         throw new Error("PIN not found");
       }
 
-      pincodeLocations=result.data.post_offices;
-      const select=document.getElementById("locationOption");
+      const office=result.data.post_offices[0];
+      const city=document.getElementById("city");
+      const state=document.getElementById("state");
 
-      select.innerHTML="<option value=\"\">Select matching location</option>";
+      if(city && office.district) city.value=office.district;
+      if(state && office.state) state.value=office.state;
 
-      pincodeLocations.forEach((office,index)=>{
-        const option=document.createElement("option");
-        option.value=String(index);
-        option.textContent=office.office_name || office.name || "Post Office";
-        select.appendChild(option);
-      });
-
-      select.disabled=false;
-
-      if(pincodeLocations.length===1){
-        select.value="0";
-        selectPincodeLocation();
-      }else{
-        setPinStatus(`${pincodeLocations.length} matching locations found. Select one to auto-fill City & State.`,"success");
-      }
+      setPinStatus(
+        "✓ City & State auto-filled. You can edit them if needed.",
+        "success"
+      );
     }catch(error){
-      resetPincodeLocation();
-      setPinStatus("PIN code not found. Please check the 6-digit PIN.","error");
+      setPinStatus(
+        "PIN not found. Please enter City & State manually.",
+        "error"
+      );
     }
   },350);
-}
-
-function selectPincodeLocation(){
-  const select=document.getElementById("locationOption");
-  const index=Number(select.value);
-  const office=pincodeLocations[index];
-
-  if(!office) return;
-
-  const city=document.getElementById("city");
-  const state=document.getElementById("state");
-
-  if(city) city.value=office.district || office.division || office.region || "";
-  if(state) state.value=office.state || "";
-
-  setPinStatus(
-    `✓ ${office.office_name || "Location"} selected • City & State updated`,
-    "success"
-  );
 }
 
 
