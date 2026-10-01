@@ -385,3 +385,12 @@ document.getElementById("cartCount").textContent=
   cart.length;
 
 renderProducts();
+
+
+function openSizeChart(){
+  document.getElementById("sizeChartModal").classList.add("show");
+}
+
+function closeSizeChart(){
+  document.getElementById("sizeChartModal").classList.remove("show");
+}
