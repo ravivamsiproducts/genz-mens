@@ -151,33 +151,32 @@
             <input id="addressLine" type="text" placeholder="House / Flat / Building" required>
           </label>
 
-          <label>Street / Area
-            <input id="street" type="text" placeholder="Street / Area / Locality" required>
+          <label>Area / Locality
+            <input id="street" type="text" placeholder="Enter your area / locality" required>
           </label>
 
           <div class="form-grid">
-            <label>City / District
-              <input id="city" type="text" placeholder="Auto-filled from PIN" required>
-            </label>
-
             <label>PIN Code
               <input id="pincode" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit PIN" pattern="[0-9]{6}" oninput="lookupPincode()" required>
-              <small id="pinStatus" class="pin-status">Enter a 6-digit PIN to auto-fill location.</small>
+              <small id="pinStatus" class="pin-status">Enter PIN to find matching locations.</small>
+            </label>
+
+            <label>Matching Location
+              <select id="locationOption" onchange="selectPincodeLocation()" disabled required>
+                <option value="">Enter PIN first</option>
+              </select>
             </label>
           </div>
 
-          <label>State
-            <select id="state" required>
-              <option value="">Select State</option>
-              <option>Andhra Pradesh</option>
-              <option>Telangana</option>
-              <option>Karnataka</option>
-              <option>Tamil Nadu</option>
-              <option>Maharashtra</option>
-              <option>Kerala</option>
-              <option>Other</option>
-            </select>
-          </label>
+          <div class="form-grid">
+            <label>City / District
+              <input id="city" type="text" placeholder="Auto-filled" readonly required>
+            </label>
+
+            <label>State
+              <input id="state" type="text" placeholder="Auto-filled" readonly required>
+            </label>
+          </div>
 
           <button class="primary-btn full checkout-submit" type="submit">Place Order →</button>
         </form>
