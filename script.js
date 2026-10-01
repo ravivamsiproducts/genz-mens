@@ -382,8 +382,70 @@ function changeQty(i,change){
 
 function checkout(){
 
+  if(!cart.length){
+    alert("Your cart is empty.");
+    return;
+  }
+
+  renderCheckout();
+
+  closeCart();
+
+  document
+    .getElementById("checkoutModal")
+    .classList.add("show");
+}
+
+function closeCheckout(){
+
+  document
+    .getElementById("checkoutModal")
+    .classList.remove("show");
+}
+
+function renderCheckout(){
+
+  const box=document.getElementById("checkoutItems");
+  let total=0;
+
+  box.innerHTML=cart.map(item=>{
+
+    const p=products.find(x=>x.id===item.id);
+    const qty=item.qty||1;
+    total+=p.price*qty;
+
+    return `
+      <div class="checkout-item">
+        <img src="${img(p)}" alt="${p.name}">
+        <div class="checkout-item-info">
+          <b>${p.name}</b>
+          <span>Size: ${item.size} • Qty: ${qty}</span>
+        </div>
+        <strong class="checkout-item-price">₹${(p.price*qty).toLocaleString("en-IN")}</strong>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("checkoutSubtotal").textContent=
+    `₹${total.toLocaleString("en-IN")}`;
+
+  document.getElementById("checkoutTotal").textContent=
+    `₹${total.toLocaleString("en-IN")}`;
+}
+
+function placeOrder(event){
+
+  event.preventDefault();
+
+  const form=document.getElementById("checkoutForm");
+
+  if(!form.checkValidity()){
+    form.reportValidity();
+    return;
+  }
+
   alert(
-    "Checkout UI is ready. Razorpay payment will be connected in the next phase."
+    "Order details saved. Payment integration will be connected in the next phase."
   );
 }
 
