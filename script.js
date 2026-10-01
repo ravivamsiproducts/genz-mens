@@ -506,9 +506,9 @@ function placeOrder(event){
     return;
   }
 
-  alert(
-    "Order details saved. Payment integration will be connected in the next phase."
-  );
+  renderPayment();
+  document.getElementById("checkoutModal").classList.remove("show");
+  document.getElementById("paymentModal").classList.add("show");
 }
 
 document.getElementById("cartCount").textContent =
@@ -522,4 +522,56 @@ function openSizeChart(){
 
 function closeSizeChart(){
   document.getElementById("sizeChartModal").classList.remove("show");
+}
+
+
+let selectedPayment="UPI";
+
+function renderPayment(){
+  const box=document.getElementById("paymentItems");
+  let total=0;
+
+  box.innerHTML=cart.map(item=>{
+    const p=products.find(x=>x.id===item.id);
+    const qty=item.qty||1;
+    total+=p.price*qty;
+
+    return `
+      <div class="checkout-item">
+        <img src="${img(p)}" alt="${p.name}">
+        <div class="checkout-item-info">
+          <b>${p.name}</b>
+          <span>Size: ${item.size} • Qty: ${qty}</span>
+        </div>
+        <strong class="checkout-item-price">₹${(p.price*qty).toLocaleString("en-IN")}</strong>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("paymentSubtotal").textContent=`₹${total.toLocaleString("en-IN")}`;
+  document.getElementById("paymentTotal").textContent=`₹${total.toLocaleString("en-IN")}`;
+}
+
+function selectPayment(method,el){
+  selectedPayment=method;
+  document.querySelectorAll(".payment-method").forEach(x=>x.classList.remove("active"));
+  el.classList.add("active");
+
+  const status=document.getElementById("paymentStatus");
+  if(status){
+    status.textContent =
+      method==="COD"
+        ? "Cash on Delivery selected. Actual order confirmation will be connected later."
+        : `${method} selected. Actual payment gateway will be connected later.`;
+  }
+}
+
+function continuePayment(){
+  alert(
+    `${selectedPayment} selected. Payment gateway integration will be connected in the next phase.`
+  );
+}
+
+function closePayment(){
+  document.getElementById("paymentModal").classList.remove("show");
 }
