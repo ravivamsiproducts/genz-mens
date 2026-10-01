@@ -158,25 +158,17 @@
           <div class="form-grid">
             <label>PIN Code
               <input id="pincode" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit PIN" pattern="[0-9]{6}" oninput="lookupPincode()" required>
-              <small id="pinStatus" class="pin-status">Enter PIN to find matching locations.</small>
+              <small id="pinStatus" class="pin-status">PIN will help auto-fill City & State.</small>
             </label>
 
-            <label>Matching Location
-              <select id="locationOption" onchange="selectPincodeLocation()" disabled required>
-                <option value="">Enter PIN first</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-grid">
             <label>City / District
-              <input id="city" type="text" placeholder="Auto-filled" readonly required>
-            </label>
-
-            <label>State
-              <input id="state" type="text" placeholder="Auto-filled" readonly required>
+              <input id="city" type="text" placeholder="Enter or auto-fill city" required>
             </label>
           </div>
+
+          <label>State
+            <input id="state" type="text" placeholder="Enter or auto-fill state" required>
+          </label>
 
           <button class="primary-btn full checkout-submit" type="submit">Place Order →</button>
         </form>
