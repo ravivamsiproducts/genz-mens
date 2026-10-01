@@ -451,7 +451,7 @@ function lookupPincode(){
 
   if(!input) return;
 
-  const pincode=input.value.replace(/\\D/g,"").slice(0,6);
+  const pincode=input.value.replace(/\D/g,"").slice(0,6);
   input.value=pincode;
 
   clearTimeout(pincodeLookupTimer);
