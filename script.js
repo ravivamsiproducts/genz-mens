@@ -12,7 +12,11 @@ const products = [
 ];
 
 let category="All";
-let cart=JSON.parse(localStorage.getItem("genzCart")||"[]");
+let cart=JSON.parse(localStorage.getItem("genzCart")||"[]").map(item=>({
+  id:item.id,
+  size:item.size,
+  qty:item.qty||1
+}));
 let current=null;
 let selectedSize="M";
 let currentView=1;
@@ -264,15 +268,22 @@ function closeProduct(){
 
 function addCurrentToCart(){
 
-  cart.push({
-    id:current.id,
-    size:selectedSize
-  });
+  const existing=cart.find(item=>
+    item.id===current.id && item.size===selectedSize
+  );
+
+  if(existing){
+    existing.qty=Math.min(9,(existing.qty||1)+1);
+  }else{
+    cart.push({
+      id:current.id,
+      size:selectedSize,
+      qty:1
+    });
+  }
 
   saveCart();
-
   closeProduct();
-
   openCart();
 }
 
@@ -283,8 +294,8 @@ function saveCart(){
     JSON.stringify(cart)
   );
 
-  document.getElementById("cartCount").textContent=
-    cart.length;
+  const count=cart.reduce((sum,item)=>sum+(item.qty||1),0);
+  document.getElementById("cartCount").textContent=count;
 }
 
 function openCart(){
@@ -305,60 +316,46 @@ function closeCart(){
 
 function renderCart(){
 
-  const box=
-    document.getElementById("cartItems");
-
+  const box=document.getElementById("cartItems");
   let total=0;
 
   if(!cart.length){
-
-    box.innerHTML=
-      "<p class='muted'>Your cart is empty.</p>";
-
-    document.getElementById("cartTotal").textContent=
-      "₹0";
-
+    box.innerHTML="<p class='muted'>Your cart is empty.</p>";
+    document.getElementById("cartTotal").textContent="₹0";
     return;
   }
 
   box.innerHTML=cart.map((item,i)=>{
 
-    const p=
-      products.find(x=>x.id===item.id);
-
-    total+=p.price;
+    const p=products.find(x=>x.id===item.id);
+    const qty=item.qty||1;
+    total+=p.price*qty;
 
     return `
-
       <div class="cart-row">
 
         <img src="${img(p)}">
 
-        <div>
-
+        <div class="cart-product-info">
           <b>${p.name}</b>
+          <div class="category">Size: ${item.size}</div>
 
-          <div class="category">
-            Size: ${item.size}
+          <div class="cart-qty">
+            <button type="button" onclick="changeQty(${i},-1)" aria-label="Decrease quantity">−</button>
+            <strong>${qty}</strong>
+            <button type="button" onclick="changeQty(${i},1)" aria-label="Increase quantity" ${qty>=9?"disabled":""}>+</button>
+            <span>Max 9</span>
           </div>
-
         </div>
 
-        <strong>
-          ₹${p.price.toLocaleString("en-IN")}
+        <strong class="cart-price">
+          ₹${(p.price*qty).toLocaleString("en-IN")}
         </strong>
 
-        <button
-          class="remove"
-          onclick="removeItem(${i})"
-        >
-          Remove
-        </button>
+        <button class="remove" onclick="removeItem(${i})">Remove</button>
 
       </div>
-
     `;
-
   }).join("");
 
   document.getElementById("cartTotal").textContent=
@@ -368,9 +365,18 @@ function renderCart(){
 function removeItem(i){
 
   cart.splice(i,1);
+  saveCart();
+  renderCart();
+}
+
+function changeQty(i,change){
+
+  if(!cart[i]) return;
+
+  const next=Math.max(1,Math.min(9,(cart[i].qty||1)+change));
+  cart[i].qty=next;
 
   saveCart();
-
   renderCart();
 }
 
@@ -382,7 +388,7 @@ function checkout(){
 }
 
 document.getElementById("cartCount").textContent=
-  cart.length;
+  cart.reduce((sum,item)=>sum+(item.qty||1),0);
 
 renderProducts();
 
