@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GenZ Men's - Modern men's fashion store">
+  <title>GenZ Men's | Men's Fashion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <a class="logo" href="#">GenZ<span>Men's</span></a>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#shop">Shop</a>
+      <a href="#new">New Arrivals</a>
+      <a href="#offers">Offers</a>
+    </nav>
+    <button class="cart-btn" onclick="openCart()">🛒 Cart <b id="cartCount">0</b></button>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div>
+        <p class="eyebrow">NEW SEASON • MEN'S FASHION</p>
+        <h1>Style that fits<br><span>your generation.</span></h1>
+        <p>Discover modern men's clothing made for everyday confidence.</p>
+        <a class="primary-btn" href="#shop">Shop Now →</a>
+      </div>
+      <div class="hero-card">
+        <span>GENZ MEN'S</span>
+        <strong>NEW<br>DROP</strong>
+        <small>2026 COLLECTION</small>
+      </div>
+    </section>
+
+    <section class="shop" id="shop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">OUR COLLECTION</p>
+          <h2>Trending Now</h2>
+        </div>
+        <input id="search" type="search" placeholder="Search products..." oninput="renderProducts()">
+      </div>
+      <div class="filters">
+        <button class="filter active" onclick="setCategory('All', this)">All</button>
+        <button class="filter" onclick="setCategory('Shirts', this)">Shirts</button>
+        <button class="filter" onclick="setCategory('T-Shirts', this)">T-Shirts</button>
+        <button class="filter" onclick="setCategory('Kurtas', this)">Kurtas</button>
+        <button class="filter" onclick="setCategory('Bottomwear', this)">Bottomwear</button>
+      </div>
+      <div class="products" id="products"></div>
+    </section>
+  </main>
+
+  <div class="modal" id="productModal">
+    <div class="modal-box product-modal">
+      <button class="close" onclick="closeProduct()">×</button>
+      <div class="gallery">
+        <img id="mainImage" src="" alt="Product">
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+      <div class="product-info">
+        <p class="eyebrow" id="modalCategory"></p>
+        <h2 id="modalName"></h2>
+        <div class="price" id="modalPrice"></div>
+        <p class="muted">Premium quality • Easy returns • Fast delivery</p>
+        <h4>Select Size</h4>
+        <div class="sizes" id="sizes">
+          <button>S</button><button>M</button><button>L</button><button>XL</button><button>XXL</button>
+        </div>
+        <button class="primary-btn full" onclick="addCurrentToCart()">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="cartModal">
+    <div class="modal-box cart-box">
+      <button class="close" onclick="closeCart()">×</button>
+      <h2>Your Cart</h2>
+      <div id="cartItems"></div>
+      <div class="cart-total"><span>Total</span><strong id="cartTotal">₹0</strong></div>
+      <button class="primary-btn full" onclick="checkout()">Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="logo">GenZ<span>Men's</span></div>
+    <p>Modern men's fashion • ₹ INR</p>
+    <small>© 2026 GenZ Men's. All rights reserved.</small>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
