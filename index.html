@@ -146,9 +146,15 @@
             <input id="customerName" type="text" placeholder="Enter your full name" required>
           </label>
 
-          <label>Email
-            <input id="customerEmail" type="email" placeholder="you@example.com" required>
-          </label>
+          <div class="form-grid">
+            <label>Customer Phone Number
+              <input id="customerPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" pattern="[0-9]{10}" required>
+            </label>
+
+            <label>Email
+              <input id="customerEmail" type="email" placeholder="you@example.com" required>
+            </label>
+          </div>
 
           <h3>Delivery Address</h3>
 
