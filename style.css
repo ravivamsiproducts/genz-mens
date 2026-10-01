@@ -166,3 +166,17 @@ footer small{color:#8f99aa}
 .phone-status.error{color:#d33}
 .otp-box{margin-top:4px}
 @media(max-width:550px){.phone-verify-row{align-items:stretch}.verify-btn{padding:10px 11px;font-size:12px}}
+
+
+/* Payment */
+.payment-box{max-width:1050px}
+.payment-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:28px}
+.payment-methods{border:1px solid var(--border);border-radius:16px;padding:20px}
+.payment-method{width:100%;display:flex;align-items:center;gap:14px;text-align:left;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer}
+.payment-method>span{font-size:25px;width:34px;text-align:center}
+.payment-method div{display:flex;flex-direction:column;gap:2px}
+.payment-method strong{font-size:14px}
+.payment-method small{color:#7a8496;font-size:11px}
+.payment-method.active{border-color:var(--blue);background:#f4f8ff;box-shadow:0 0 0 1px var(--blue)}
+.payment-status{font-size:12px;color:#687386;background:#f7f9fd;border-radius:10px;padding:12px;margin:14px 0}
+@media(max-width:800px){.payment-layout{grid-template-columns:1fr}}
