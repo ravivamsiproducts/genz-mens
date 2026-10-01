@@ -116,6 +116,94 @@
     </div>
   </div>
 
+
+  <div class="modal" id="checkoutModal">
+    <div class="modal-box checkout-box">
+      <button class="close" onclick="closeCheckout()">×</button>
+
+      <div class="checkout-head">
+        <p class="eyebrow">CHECKOUT</p>
+        <h2>Complete Your Order</h2>
+        <p class="muted">Enter your delivery details to continue.</p>
+      </div>
+
+      <div class="checkout-layout">
+        <form id="checkoutForm" class="checkout-form" onsubmit="placeOrder(event)">
+          <h3>Customer Details</h3>
+
+          <label>Full Name
+            <input id="customerName" type="text" placeholder="Enter your full name" required>
+          </label>
+
+          <div class="form-grid">
+            <label>Mobile Number
+              <input id="customerPhone" type="tel" inputmode="numeric" placeholder="10-digit mobile number" pattern="[0-9]{10}" required>
+            </label>
+
+            <label>Email
+              <input id="customerEmail" type="email" placeholder="you@example.com" required>
+            </label>
+          </div>
+
+          <h3>Delivery Address</h3>
+
+          <label>House / Flat / Building
+            <input id="addressLine" type="text" placeholder="House / Flat / Building" required>
+          </label>
+
+          <label>Street / Area
+            <input id="street" type="text" placeholder="Street / Area / Locality" required>
+          </label>
+
+          <div class="form-grid">
+            <label>City
+              <input id="city" type="text" placeholder="City" required>
+            </label>
+
+            <label>PIN Code
+              <input id="pincode" type="text" inputmode="numeric" placeholder="6-digit PIN" pattern="[0-9]{6}" required>
+            </label>
+          </div>
+
+          <label>State
+            <select id="state" required>
+              <option value="">Select State</option>
+              <option>Andhra Pradesh</option>
+              <option>Telangana</option>
+              <option>Karnataka</option>
+              <option>Tamil Nadu</option>
+              <option>Maharashtra</option>
+              <option>Kerala</option>
+              <option>Other</option>
+            </select>
+          </label>
+
+          <button class="primary-btn full checkout-submit" type="submit">Place Order →</button>
+        </form>
+
+        <aside class="order-summary">
+          <h3>Order Summary</h3>
+          <div id="checkoutItems"></div>
+
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <strong id="checkoutSubtotal">₹0</strong>
+          </div>
+          <div class="summary-line">
+            <span>Delivery</span>
+            <strong>FREE</strong>
+          </div>
+          <div class="summary-total">
+            <span>Total</span>
+            <strong id="checkoutTotal">₹0</strong>
+          </div>
+
+          <p class="checkout-note">🔒 Your details are used only for order processing.</p>
+        </aside>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="footer-brand">
       <div class="logo">GenZ<span>Men's</span></div>
