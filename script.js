@@ -434,90 +434,101 @@ function renderCheckout(){
 }
 
 let pincodeLookupTimer=null;
+let pincodeLocations=[];
 
 function setPinStatus(message,type=""){
-
   const status=document.getElementById("pinStatus");
-
   if(!status) return;
-
   status.textContent=message;
   status.className="pin-status "+type;
 }
 
+function resetPincodeLocation(){
+  const select=document.getElementById("locationOption");
+  if(select){
+    select.innerHTML="<option value=\"\">Enter PIN first</option>";
+    select.disabled=true;
+  }
+  const city=document.getElementById("city");
+  const state=document.getElementById("state");
+  if(city) city.value="";
+  if(state) state.value="";
+  pincodeLocations=[];
+}
+
 function lookupPincode(){
-
   const input=document.getElementById("pincode");
-
   if(!input) return;
 
   const pincode=input.value.replace(/\D/g,"").slice(0,6);
   input.value=pincode;
-
   clearTimeout(pincodeLookupTimer);
 
+  resetPincodeLocation();
+
   if(pincode.length<6){
-    setPinStatus("Enter a 6-digit PIN to auto-fill location.");
+    setPinStatus("Enter PIN to find matching locations.");
     return;
   }
 
   setPinStatus("Looking up PIN code…","loading");
 
   pincodeLookupTimer=setTimeout(async()=>{
-
     try{
-
-      const response=await fetch(
-        `https://api.pincodeapi.in/api/v1/pincode/${pincode}`
-      );
-
+      const response=await fetch(`https://api.pincodeapi.in/api/v1/pincode/${pincode}`);
       if(!response.ok) throw new Error("PIN lookup failed");
 
       const result=await response.json();
-
       if(!result.success || !result.data || !result.data.post_offices?.length){
         throw new Error("PIN not found");
       }
 
-      const offices=result.data.post_offices;
-      const first=offices[0];
+      pincodeLocations=result.data.post_offices;
+      const select=document.getElementById("locationOption");
 
-      const city=document.getElementById("city");
-      const state=document.getElementById("state");
+      select.innerHTML="<option value=\"\">Select matching location</option>";
 
-      // PIN codes can cover multiple post offices, so use the
-      // postal district for the City/District field and show offices below.
-      if(city) city.value=first.district || "";
-      if(state) state.value=first.state || "";
+      pincodeLocations.forEach((office,index)=>{
+        const option=document.createElement("option");
+        option.value=String(index);
+        option.textContent=office.office_name || office.name || "Post Office";
+        select.appendChild(option);
+      });
 
-      const officeNames=offices
-        .slice(0,3)
-        .map(office=>office.office_name)
-        .filter(Boolean);
+      select.disabled=false;
 
-      const extra=offices.length>3 ? " +" + (offices.length-3) + " more" : "";
-
-      setPinStatus(
-        `✓ ${first.district || "Location"} • ${first.state || ""} • Post Office: ${officeNames.join(", ")}${extra}`,
-        "success"
-      );
-
+      if(pincodeLocations.length===1){
+        select.value="0";
+        selectPincodeLocation();
+      }else{
+        setPinStatus(`${pincodeLocations.length} matching locations found. Select one to auto-fill City & State.`,"success");
+      }
     }catch(error){
-
-      const city=document.getElementById("city");
-      const state=document.getElementById("state");
-
-      if(city) city.value="";
-      if(state) state.value="";
-
-      setPinStatus(
-        "PIN code not found. Please check the 6-digit PIN.",
-        "error"
-      );
+      resetPincodeLocation();
+      setPinStatus("PIN code not found. Please check the 6-digit PIN.","error");
     }
-
   },350);
 }
+
+function selectPincodeLocation(){
+  const select=document.getElementById("locationOption");
+  const index=Number(select.value);
+  const office=pincodeLocations[index];
+
+  if(!office) return;
+
+  const city=document.getElementById("city");
+  const state=document.getElementById("state");
+
+  if(city) city.value=office.district || office.division || office.region || "";
+  if(state) state.value=office.state || "";
+
+  setPinStatus(
+    `✓ ${office.office_name || "Location"} selected • City & State updated`,
+    "success"
+  );
+}
+
 
 function placeOrder(event){
 
