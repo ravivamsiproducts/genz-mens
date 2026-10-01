@@ -433,6 +433,92 @@ function renderCheckout(){
     `₹${total.toLocaleString("en-IN")}`;
 }
 
+let pincodeLookupTimer=null;
+
+function setPinStatus(message,type=""){
+
+  const status=document.getElementById("pinStatus");
+
+  if(!status) return;
+
+  status.textContent=message;
+  status.className="pin-status "+type;
+}
+
+function lookupPincode(){
+
+  const input=document.getElementById("pincode");
+
+  if(!input) return;
+
+  const pincode=input.value.replace(/\\D/g,"").slice(0,6);
+  input.value=pincode;
+
+  clearTimeout(pincodeLookupTimer);
+
+  if(pincode.length<6){
+    setPinStatus("Enter a 6-digit PIN to auto-fill location.");
+    return;
+  }
+
+  setPinStatus("Looking up PIN code…","loading");
+
+  pincodeLookupTimer=setTimeout(async()=>{
+
+    try{
+
+      const response=await fetch(
+        `https://api.pincodeapi.in/api/v1/pincode/${pincode}`
+      );
+
+      if(!response.ok) throw new Error("PIN lookup failed");
+
+      const result=await response.json();
+
+      if(!result.success || !result.data || !result.data.post_offices?.length){
+        throw new Error("PIN not found");
+      }
+
+      const offices=result.data.post_offices;
+      const first=offices[0];
+
+      const city=document.getElementById("city");
+      const state=document.getElementById("state");
+
+      // PIN codes can cover multiple post offices, so use the
+      // postal district for the City/District field and show offices below.
+      if(city) city.value=first.district || "";
+      if(state) state.value=first.state || "";
+
+      const officeNames=offices
+        .slice(0,3)
+        .map(office=>office.office_name)
+        .filter(Boolean);
+
+      const extra=offices.length>3 ? " +" + (offices.length-3) + " more" : "";
+
+      setPinStatus(
+        `✓ ${first.district || "Location"} • ${first.state || ""} • Post Office: ${officeNames.join(", ")}${extra}`,
+        "success"
+      );
+
+    }catch(error){
+
+      const city=document.getElementById("city");
+      const state=document.getElementById("state");
+
+      if(city) city.value="";
+      if(state) state.value="";
+
+      setPinStatus(
+        "PIN code not found. Please check the 6-digit PIN.",
+        "error"
+      );
+    }
+
+  },350);
+}
+
 function placeOrder(event){
 
   event.preventDefault();
