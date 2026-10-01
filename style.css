@@ -151,3 +151,6 @@ footer small{color:#8f99aa}
 .pin-status.loading{color:var(--blue)}
 .pin-status.success{color:#16834b}
 .pin-status.error{color:#d33}
+
+.checkout-form select:disabled{background:#f5f7fb;color:#9aa2b1;cursor:not-allowed}
+.checkout-form input[readonly]{background:#f5f7fb;color:#4c5668}
