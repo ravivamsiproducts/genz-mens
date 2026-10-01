@@ -205,6 +205,44 @@
         </aside>
       </div>
     </div>
+  <div class="modal" id="paymentModal">
+    <div class="modal-box payment-box">
+      <button class="close" onclick="closePayment()">×</button>
+
+      <div class="checkout-head">
+        <p class="eyebrow">PAYMENT</p>
+        <h2>Choose Payment Method</h2>
+        <p class="muted">Select how you would like to pay for your order.</p>
+      </div>
+
+      <div class="payment-layout">
+        <div class="payment-methods">
+          <button type="button" class="payment-method active" onclick="selectPayment('UPI',this)">
+            <span>📱</span><div><strong>UPI</strong><small>Pay using UPI apps</small></div>
+          </button>
+          <button type="button" class="payment-method" onclick="selectPayment('Card',this)">
+            <span>💳</span><div><strong>Credit / Debit Card</strong><small>Visa, Mastercard & more</small></div>
+          </button>
+          <button type="button" class="payment-method" onclick="selectPayment('Net Banking',this)">
+            <span>🏦</span><div><strong>Net Banking</strong><small>Pay through your bank</small></div>
+          </button>
+          <button type="button" class="payment-method" onclick="selectPayment('COD',this)">
+            <span>💵</span><div><strong>Cash on Delivery</strong><small>Pay when your order arrives</small></div>
+          </button>
+
+          <div id="paymentStatus" class="payment-status">Demo payment screen — no payment will be charged.</div>
+          <button class="primary-btn full" type="button" onclick="continuePayment()">Continue →</button>
+        </div>
+
+        <aside class="order-summary">
+          <h3>Order Summary</h3>
+          <div id="paymentItems"></div>
+          <div class="summary-line"><span>Subtotal</span><strong id="paymentSubtotal">₹0</strong></div>
+          <div class="summary-line"><span>Delivery</span><strong>FREE</strong></div>
+          <div class="summary-total"><span>Total</span><strong id="paymentTotal">₹0</strong></div>
+        </aside>
+      </div>
+    </div>
   </div>
 
   <footer>
