@@ -613,12 +613,27 @@ function img(p,v){
 
 function renderProducts(){
   const q=document.getElementById("search").value.toLowerCase();
-  const list=products.filter(p=>(category==="All"||p.category===category)&&p.name.toLowerCase().includes(q));
+  const list=products.filter(p=>
+    (category==="All"||p.category===category) &&
+    p.name.toLowerCase().includes(q)
+  );
   document.getElementById("products").innerHTML=list.map(p=>{
-    const id=String(p.id).replace(/\x27/g,"\\\x27");
-    const badge=p.badge?"<span class=\"badge\">"+p.badge+"</span>":"";
-    const old=p.compare_at_price&&Number(p.compare_at_price)>Number(p.price)?" <span class=\"old\">₹"+Number(p.compare_at_price).toLocaleString("en-IN")+"</span>":"";
-    return "<article class=\"card\"><div class=\"card-img\" onclick=\"openProduct(\\\x27"+id+"\\\x27)\">"+badge+"<img src=\""+img(p,1)+"\" alt=\""+p.name+"\" onerror=\"this.style.display=\\\x27none\\\x27\"></div><div class=\"card-body\"><div class=\"category\">"+p.category+"</div><h3>"+p.name+"</h3><div class=\"price\">₹"+Number(p.price).toLocaleString("en-IN")+old+"</div><button class=\"add\" onclick=\"openProduct(\\\x27"+id+"\\\x27)\">View Product</button></div></article>";
+    const id=String(p.id);
+    const old=p.compare_at_price && Number(p.compare_at_price)>Number(p.price)
+      ? `<span class="old">₹${Number(p.compare_at_price).toLocaleString("en-IN")}</span>` : "";
+    return `
+      <article class="card">
+        <div class="card-img" onclick='openProduct(${JSON.stringify(id)})'>
+          ${p.badge ? `<span class="badge">${p.badge}</span>` : ""}
+          <img src="${img(p,1)}" alt="${p.name}" onerror="this.style.display='none'">
+        </div>
+        <div class="card-body">
+          <div class="category">${p.category}</div>
+          <h3>${p.name}</h3>
+          <div class="price">₹${Number(p.price).toLocaleString("en-IN")}${old}</div>
+          <button class="add" onclick='openProduct(${JSON.stringify(id)})'>View Product</button>
+        </div>
+      </article>`;
   }).join("");
 }
 
