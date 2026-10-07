@@ -83,7 +83,6 @@ function img(p,v=1){
   }
   return typeof p?.id==="number" ? `Images/Product${String(p.id).padStart(2,"0")}/view${v}.jpg` : "";
 }
-/view${v}.jpg`;
 }
 
 function renderProducts(){
