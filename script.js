@@ -193,3 +193,108 @@ function addCurrentToCart(){
   openCart();
 }
 
+
+
+const SUPABASE_URL="https://sxjswfvfwmibiumyrceb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_678HrTraImMobymHWNLq0Q_iSSqhh4O";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
+async function loadStoreProducts(){
+  try{
+    const r=await supabaseClient.from("products").select("id,name,slug,description,price,compare_at_price,badge,sizes,category_id,is_active").eq("is_active",true).order("created_at",{ascending:false});
+    if(r.error)throw r.error;
+    if(!r.data?.length)return;
+    const ids=r.data.map(p=>p.id);
+    const [cr,ir,sr]=await Promise.all([
+      supabaseClient.from("categories").select("id,name"),
+      supabaseClient.from("product_images").select("product_id,image_url,sort_order,is_primary").in("product_id",ids).order("sort_order"),
+      supabaseClient.from("inventory").select("product_id,size,stock_qty").in("product_id",ids)
+    ]);
+    if(cr.error)throw cr.error;
+    const cm={},im={},sm={};
+    (cr.data||[]).forEach(x=>cm[x.id]=x.name);
+    (ir.data||[]).forEach(x=>(im[x.product_id]??=[]).push(x.image_url));
+    (sr.data||[]).forEach(x=>{(sm[x.product_id]??={})[x.size]=Number(x.stock_qty||0);});
+    products=r.data.map(p=>({id:p.id,name:p.name,category:cm[p.category_id]||"Uncategorized",price:Number(p.price||0),compare_at_price:p.compare_at_price,badge:p.badge||"",description:p.description||"",sizes:p.sizes||["S","M","L","XL","XXL"],images:im[p.id]||[],inventory:sm[p.id]||{}}));
+    cart=cart.filter(item=>products.some(p=>String(p.id)===String(item.id)));
+    saveCart();
+    renderProducts();
+    console.log("Live catalog loaded:",products.length);
+  }catch(e){console.error("Live catalog load failed:",e);}
+}
+
+function img(p,v){
+  v=v||1;
+  if(p&&p.images&&p.images.length)return p.images[(v-1)%p.images.length]||p.images[0];
+  return typeof p?.id==="number"?"Images/Product"+String(p.id).padStart(2,"0")+"/view"+v+".jpg":"";
+}
+
+function renderProducts(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const list=products.filter(p=>(category==="All"||p.category===category)&&p.name.toLowerCase().includes(q));
+  document.getElementById("products").innerHTML=list.map(p=>{
+    const id=String(p.id).replace(/\x27/g,"\\\x27");
+    const badge=p.badge?"<span class=\"badge\">"+p.badge+"</span>":"";
+    const old=p.compare_at_price&&Number(p.compare_at_price)>Number(p.price)?" <span class=\"old\">₹"+Number(p.compare_at_price).toLocaleString("en-IN")+"</span>":"";
+    return "<article class=\"card\"><div class=\"card-img\" onclick=\"openProduct(\\\x27"+id+"\\\x27)\">"+badge+"<img src=\""+img(p,1)+"\" alt=\""+p.name+"\" onerror=\"this.style.display=\\\x27none\\\x27\"></div><div class=\"card-body\"><div class=\"category\">"+p.category+"</div><h3>"+p.name+"</h3><div class=\"price\">₹"+Number(p.price).toLocaleString("en-IN")+old+"</div><button class=\"add\" onclick=\"openProduct(\\\x27"+id+"\\\x27)\">View Product</button></div></article>";
+  }).join("");
+}
+
+function openProduct(id){
+  current=products.find(p=>String(p.id)===String(id));
+  if(!current)return;
+  const sizes=current.sizes||["S","M","L","XL","XXL"];
+  selectedSize=sizes.includes("M")?"M":sizes[0];
+  currentView=1;
+  document.getElementById("modalCategory").textContent=current.category;
+  document.getElementById("modalName").textContent=current.name;
+  const old=current.compare_at_price&&Number(current.compare_at_price)>Number(current.price)?" <span class=\"old\">₹"+Number(current.compare_at_price).toLocaleString("en-IN")+"</span>":"";
+  document.getElementById("modalPrice").innerHTML="₹"+Number(current.price).toLocaleString("en-IN")+old;
+  const list=current.images&&current.images.length?current.images:[1,2,3,4,5].map(v=>img(current,v));
+  document.getElementById("mainImage").src=list[0];
+  document.getElementById("thumbs").innerHTML=list.slice(0,5).map((url,i)=>"<img class=\""+(i===0?"active":"")+"\" src=\""+url+"\" alt=\"View "+(i+1)+"\" onclick=\"showView("+(i+1)+")\" onerror=\"this.style.display=\\\x27none\\\x27\">").join("");
+  document.querySelectorAll("#sizes button").forEach(b=>{
+    const size=b.textContent;
+    b.style.display=sizes.includes(size)?"":"none";
+    b.classList.toggle("selected",size===selectedSize);
+    b.disabled=sizes.includes(size)&&Number(current.inventory?.[size]??0)<=0;
+    b.onclick=()=>{if(b.disabled)return;selectedSize=size;document.querySelectorAll("#sizes button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");updateAddButtonState();};
+  });
+  updateAddButtonState();
+  setupSlider();
+  document.getElementById("productModal").classList.add("show");
+}
+
+function updateAddButtonState(){
+  const b=document.querySelector("#productModal .primary-btn.full");
+  if(!b||!current)return;
+  const known=Object.keys(current.inventory||{}).length>0;
+  const stock=Number(current.inventory?.[selectedSize]??0);
+  b.textContent=known&&stock<=0?"Out of Stock":"Add to Cart";
+  b.disabled=known&&stock<=0;
+}
+
+function showView(v){
+  if(!current)return;
+  const count=current.images?.length||5;
+  if(v>count)v=1;
+  if(v<1)v=count;
+  currentView=v;
+  document.getElementById("mainImage").src=img(current,currentView);
+  document.querySelectorAll(".thumbs img").forEach((x,i)=>x.classList.toggle("active",i+1===currentView));
+}
+
+function addCurrentToCart(){
+  if(!current)return;
+  const known=Object.keys(current.inventory||{}).length>0;
+  const available=Number(current.inventory?.[selectedSize]??0);
+  if(known&&available<=0){alert("This size is currently out of stock.");return;}
+  const existing=cart.find(item=>String(item.id)===String(current.id)&&item.size===selectedSize);
+  if(existing)existing.qty=Math.min(known?Math.min(9,available):9,(existing.qty||1)+1);
+  else cart.push({id:current.id,size:selectedSize,qty:1});
+  saveCart();
+  closeProduct();
+  openCart();
+}
+
+loadStoreProducts();
