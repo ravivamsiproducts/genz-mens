@@ -584,7 +584,8 @@ async function continuePayment(){
     alert("Order placed successfully!\nOrder Number: "+result.data.order_number+"\nTotal: ₹"+Number(result.data.total).toLocaleString("en-IN"));
   }catch(error){
     console.error("Order creation failed:",error);
-    alert("We could not place the order. Please check your details, stock availability, and try again.");
+    const detail=error?.message||error?.details||error?.hint||"Unknown error";
+    alert("Order could not be saved.\\n\\nReason: "+detail);
   }finally{
     if(button){button.disabled=false;button.textContent="Continue";}
   }
