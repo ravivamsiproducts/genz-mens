@@ -190,7 +190,7 @@ async function loadAdminPayments(){
   const body=document.getElementById("paymentsTableBody");if(!body)return;
   setSectionMessage("paymentsMessage","Loading payments…");
   const {data,error}=await supabaseClient.from("orders").select("id,order_number,customer_name,customer_phone,payment_method,payment_status,total,upfront_amount,amount_due,created_at").order("created_at",{ascending:false});
-  if(error){body.innerHTML='<tr><td colspan="6"><div class="empty"><strong>Could not load payments</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("paymentsMessage",error.message,"error");return;}
+  if(error){body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>Could not load payments</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("paymentsMessage",error.message,"error");return;}
   adminPayments=data||[];
   renderAdminPayments();
   const sales=adminPayments.filter(o=>o.payment_status==="Paid").reduce((a,o)=>a+Number(o.total||0),0);
@@ -205,7 +205,7 @@ function renderAdminPayments(){
   const list=adminPayments.filter(o=>(!q||[o.order_number,o.customer_name,o.customer_phone].some(v=>String(v||"").toLowerCase().includes(q)))&&(status==="All"||o.payment_status===status)&&(method==="All"||o.payment_method===method));
   const summary={count:list.length,total:list.reduce((a,o)=>a+Number(o.total||0),0),pending:list.filter(o=>o.payment_status==="Pending").reduce((a,o)=>a+Number(o.total||0),0),paid:list.filter(o=>o.payment_status==="Paid").reduce((a,o)=>a+Number(o.total||0),0)};
   document.getElementById("paymentSummary").innerHTML='<div><span>Records</span><strong>'+summary.count+'</strong></div><div><span>Value</span><strong>₹'+summary.total.toLocaleString("en-IN")+'</strong></div><div><span>Paid</span><strong>₹'+summary.paid.toLocaleString("en-IN")+'</strong></div><div><span>Pending</span><strong>₹'+summary.pending.toLocaleString("en-IN")+'</strong></div>';
-  if(!list.length){body.innerHTML='<tr><td colspan="6"><div class="empty"><strong>No payment records</strong><span>Orders will appear here after checkout.</span></div></td></tr>';return;}
+  if(!list.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>No payment records</strong><span>Orders will appear here after checkout.</span></div></td></tr>';return;}
   body.innerHTML=list.map(o=>'<tr><td><strong>'+escapeHtml(o.order_number)+'</strong></td><td><div class="product-cell"><strong>'+escapeHtml(o.customer_name)+'</strong><small>'+escapeHtml(o.customer_phone)+'</small></div></td><td>'+escapeHtml(o.payment_method||"—")+'</td><td><span class="status-pill '+(o.payment_status==="Paid"?"status-active":"status-inactive")+'">'+escapeHtml(o.payment_status||"Pending")+'</span></td><td>₹'+Number(o.total||0).toLocaleString("en-IN")+'</td><td>'+escapeHtml(new Date(o.created_at).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}))+'</td></tr>').join("");
 }
 function loadAllAdminData(){loadAdminOrders();loadAdminCustomers();loadAdminInventory();loadAdminPayments();}
@@ -226,7 +226,7 @@ async function loadAdminOrders(){
   setOrdersMessage("Loading orders…");
   const {data,error}=await supabaseClient
     .from("orders")
-    .select("id,order_number,customer_id,customer_name,customer_phone,customer_email,address_line,area_locality,pincode,city,state,subtotal,delivery_charge,total,order_status,payment_method,payment_status,created_at,updated_at")
+    .select("id,order_number,customer_id,customer_name,customer_phone,customer_email,address_line,area_locality,pincode,city,state,subtotal,delivery_charge,total,upfront_amount,amount_due,order_status,payment_method,payment_status,created_at,updated_at")
     .order("created_at",{ascending:false});
   if(error){
     console.error("Orders load failed:",error);
@@ -308,7 +308,7 @@ async function openOrderDetails(id){
     items.map(i=>'<tr><td>'+escapeHtml(i.product_name)+'</td><td>'+escapeHtml(i.size)+'</td><td>'+i.quantity+'</td><td>₹'+Number(i.unit_price).toLocaleString("en-IN")+'</td><td>₹'+Number(i.line_total).toLocaleString("en-IN")+'</td></tr>').join("")+
     '</tbody></table></div>'+
     '<div class="summary-total"><span>Total</span><strong>₹'+Number(order.total||0).toLocaleString("en-IN")+'</strong></div>'+
-    '<div class="order-detail-actions"><span>Payment: <strong>'+escapeHtml(paymentMethodLabels[order.payment_method]||order.payment_method||"—")+'</strong> · '+escapeHtml(order.payment_status||"Pending")+'</span><br><span>Upfront: <strong>₹'+Number(order.upfront_amount||0).toLocaleString("en-IN")+'</strong> · Due on delivery: <strong>₹'+Number(order.amount_due||0).toLocaleString("en-IN")+'</strong></span></div>';
+    '<div class="order-detail-actions"><span>Payment: <strong>'+escapeHtml(paymentMethodLabels[order.payment_method]||order.payment_method||"—")+'</strong> · '+escapeHtml(order.payment_status||"Pending")+'</span><br><span>COD Charge: <strong>₹'+Number(order.delivery_charge||0).toLocaleString("en-IN")+'</strong> · Upfront: <strong>₹'+Number(order.upfront_amount||0).toLocaleString("en-IN")+'</strong> · Due on delivery: <strong>₹'+Number(order.amount_due||0).toLocaleString("en-IN")+'</strong></span></div>';
 }
 
 function closeOrderDetails(){
