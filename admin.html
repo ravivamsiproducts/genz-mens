@@ -56,7 +56,20 @@
 
       <section class="section" id="products">
         <div class="section-bar"><div><h2>Products</h2><p>Manage your store catalog.</p></div><button class="primary" id="addProductBtn">+ Add Product</button></div>
-        <div class="panel"><div class="empty"><strong>Product management ready</strong><span>Live Add / Edit / Delete will connect to the Supabase products table in the next connection step.</span></div></div>
+        <div class="panel">
+  <div class="product-toolbar">
+    <input id="productSearch" class="admin-search" type="search" placeholder="Search products...">
+    <select id="productCategoryFilter" class="admin-select"><option value="All">All Categories</option></select>
+    <button class="secondary" id="refreshProductsBtn" type="button">↻ Refresh</button>
+  </div>
+  <div id="productMessage" class="admin-message"></div>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Status</th><th>Sizes</th><th>Actions</th></tr></thead>
+      <tbody id="productTableBody"></tbody>
+    </table>
+  </div>
+</div>
       </section>
 
       <section class="section" id="orders">
@@ -81,7 +94,40 @@
     </main>
   </div>
 
+  <div class="admin-modal" id="productModal" hidden>
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <div><p class="eyebrow">CATALOG</p><h2 id="productModalTitle">Add Product</h2></div>
+        <button class="modal-close" id="closeProductModal" type="button">×</button>
+      </div>
+      <form id="productForm" class="product-form">
+        <input type="hidden" id="productId">
+        <div class="form-grid">
+          <label>Product Name<input id="productName" required placeholder="Premium Cotton Shirt"></label>
+          <label>Category<select id="productCategory" required></select></label>
+        </div>
+        <div class="form-grid">
+          <label>Price (₹)<input id="productPrice" type="number" min="0" step="0.01" required placeholder="899"></label>
+          <label>Compare at Price (₹)<input id="productComparePrice" type="number" min="0" step="0.01" placeholder="999"></label>
+        </div>
+        <div class="form-grid">
+          <label>Badge<input id="productBadge" placeholder="NEW / TRENDING"></label>
+          <label>Sizes<select id="productSizes" multiple size="5">
+            <option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option>
+          </select></label>
+        </div>
+        <label>Description<textarea id="productDescription" rows="4" placeholder="Product description"></textarea></label>
+        <label class="check-row"><input id="productActive" type="checkbox" checked> Active product (visible in store)</label>
+        <div id="productFormMessage" class="admin-message"></div>
+        <div class="modal-actions">
+          <button class="secondary" id="cancelProductBtn" type="button">Cancel</button>
+          <button class="primary" type="submit">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=20261007-5"></script>
+  <script src="admin.js?v=20261007-6"></script>
 </body>
 </html>
