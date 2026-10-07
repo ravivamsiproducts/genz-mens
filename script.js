@@ -498,34 +498,25 @@ function lookupPincode(){
 
 function placeOrder(event){
   event.preventDefault();
-
   const form=document.getElementById("checkoutForm");
-
-  if(!form.checkValidity()){
-    form.reportValidity();
-    return;
-  }
-
+  if(!form.checkValidity()){form.reportValidity();return;}
+  pendingCheckout={
+    customer_name:document.getElementById("customerName").value.trim(),
+    customer_phone:document.getElementById("customerPhone").value.trim(),
+    customer_email:document.getElementById("customerEmail").value.trim(),
+    address_line:document.getElementById("addressLine").value.trim(),
+    area_locality:document.getElementById("street").value.trim(),
+    pincode:document.getElementById("pincode").value.trim(),
+    city:document.getElementById("city").value.trim(),
+    state:document.getElementById("state").value.trim()
+  };
   renderPayment();
   document.getElementById("checkoutModal").classList.remove("show");
   document.getElementById("paymentModal").classList.add("show");
 }
 
-document.getElementById("cartCount").textContent =
-  cart.reduce((sum,item)=>sum+(item.qty||1),0);
-
-renderProducts();
-
-function openSizeChart(){
-  document.getElementById("sizeChartModal").classList.add("show");
-}
-
-function closeSizeChart(){
-  document.getElementById("sizeChartModal").classList.remove("show");
-}
-
-
 let selectedPayment="UPI";
+let pendingCheckout=null;
 
 function renderPayment(){
   const box=document.getElementById("paymentItems");
@@ -566,10 +557,37 @@ function selectPayment(method,el){
   }
 }
 
-function continuePayment(){
-  alert(
-    `${selectedPayment} selected. Payment gateway integration will be connected in the next phase.`
-  );
+async function continuePayment(){
+  if(!pendingCheckout||!cart.length){alert("Your cart is empty.");return;}
+  const button=document.querySelector("#paymentModal .primary-btn.full");
+  if(button){button.disabled=true;button.textContent="Placing Order...";}
+  try{
+    const items=cart.map(item=>({product_id:item.id,size:item.size,quantity:item.qty||1}));
+    const result=await supabaseClient.rpc("create_store_order",{
+      p_customer_name:pendingCheckout.customer_name,
+      p_customer_phone:pendingCheckout.customer_phone,
+      p_customer_email:pendingCheckout.customer_email,
+      p_address_line:pendingCheckout.address_line,
+      p_area_locality:pendingCheckout.area_locality,
+      p_pincode:pendingCheckout.pincode,
+      p_city:pendingCheckout.city,
+      p_state:pendingCheckout.state,
+      p_payment_method:selectedPayment,
+      p_items:items
+    });
+    if(result.error)throw result.error;
+    cart=[];
+    saveCart();
+    pendingCheckout=null;
+    closePayment();
+    renderCart();
+    alert("Order placed successfully!\nOrder Number: "+result.data.order_number+"\nTotal: ₹"+Number(result.data.total).toLocaleString("en-IN"));
+  }catch(error){
+    console.error("Order creation failed:",error);
+    alert("We could not place the order. Please check your details, stock availability, and try again.");
+  }finally{
+    if(button){button.disabled=false;button.textContent="Continue";}
+  }
 }
 
 function closePayment(){
