@@ -162,7 +162,39 @@ async function loadAdminProducts(){
   document.getElementById("statProducts").textContent=adminProducts.length;
   setAdminMessage(adminProducts.length?adminProducts.length+" live product(s) loaded.":"No products yet.");
 }
-function openProductEditor(product=null){
+async function getProductImages(productId){
+  const {data,error}=await supabaseClient.from("product_images").select("id,image_url,sort_order,is_primary").eq("product_id",productId).order("sort_order");
+  if(error){console.error("Product image load failed:",error);return [];}
+  return data||[];
+}
+async function getProductInventory(productId){
+  const {data,error}=await supabaseClient.from("inventory").select("size,stock_qty").eq("product_id",productId);
+  if(error){console.error("Inventory load failed:",error);return [];}
+  return data||[];
+}
+function renderInventoryInputs(sizes,stockRows=[]){
+  const stockMap={};
+  stockRows.forEach(function(r){stockMap[r.size]=r.stock_qty??0;});
+  const all=["S","M","L","XL","XXL"];
+  document.getElementById("inventoryGrid").innerHTML=all.filter(function(size){return sizes.includes(size);}).map(function(size){
+    return '<label class="stock-field"><span>'+size+' Stock</span><input type="number" min="0" step="1" data-stock-size="'+size+'" value="'+Number(stockMap[size]||0)+'"></label>';
+  }).join("") || '<span style="color:#6f7b8e;font-size:12px">Select at least one size.</span>';
+}
+function renderProductImagePreview(images){
+  const box=document.getElementById("productImagePreview");
+  if(!box)return;
+  box.innerHTML=(images||[]).slice(0,5).map(function(item,i){
+    const url=typeof item==="string"?item:item.image_url;
+    return '<div class="image-preview-card"><img src="'+escapeHtml(url)+'" alt="Product image '+(i+1)+'"><span>View '+(i+1)+'</span></div>';
+  }).join("");
+}
+function previewSelectedImages(){
+  const files=Array.from(document.getElementById("productImages").files||[]).slice(0,5);
+  if(!files.length)return;
+  renderProductImagePreview(files.map(function(file){return URL.createObjectURL(file);}));
+}
+async function openProductEditor(product=null){
+
   document.getElementById("productModalTitle").textContent=product?"Edit Product":"Add Product";
   document.getElementById("productId").value=product?.id||"";
   document.getElementById("productName").value=product?.name||"";
@@ -174,10 +206,81 @@ function openProductEditor(product=null){
   document.getElementById("productActive").checked=product?.is_active!==false;
   const sizes=product?.sizes||["S","M","L","XL","XXL"];
   Array.from(document.getElementById("productSizes").options).forEach(function(o){o.selected=sizes.includes(o.value);});
+  document.getElementById("productImages").value="";
+  renderProductImagePreview([]);
+  renderInventoryInputs(sizes,[]);
+  if(product?.id){
+    const [images,stock]=await Promise.all([getProductImages(product.id),getProductInventory(product.id)]);
+    renderProductImagePreview(images);
+    renderInventoryInputs(sizes,stock);
+  }
   setFormMessage("");
   document.getElementById("productModal").hidden=false;
 }
 function closeProductEditor(){document.getElementById("productModal").hidden=true;}
+async function uploadProductImages(productId,files){
+  const selected=Array.from(files||[]).slice(0,5);
+  if(!selected.length)return;
+  const {data:oldImages,error:oldError}=await supabaseClient.from("product_images").select("id,image_url").eq("product_id",productId);
+  if(oldError)throw oldError;
+
+  for(let i=0;i<selected.length;i++){
+    const file=selected[i];
+    const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const path=productId+"/view"+(i+1)+"-"+Date.now()+"."+ext;
+    const upload=await supabaseClient.storage.from("product-images").upload(path,file,{upsert:false,contentType:file.type||"image/jpeg"});
+    if(upload.error)throw upload.error;
+    const publicUrl=supabaseClient.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+    const insert=await supabaseClient.from("product_images").insert({
+      product_id:productId,image_url:publicUrl,sort_order:i+1,is_primary:i===0
+    });
+    if(insert.error)throw insert.error;
+  }
+
+  if(oldImages?.length){
+    await supabaseClient.from("product_images").delete().eq("product_id",productId).neq("id","00000000-0000-0000-0000-000000000000");
+    // Re-insert uploaded image rows because the cleanup above removes the old rows and newly inserted rows.
+    for(let i=0;i<selected.length;i++){
+      const file=selected[i];
+      const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");
+      // This branch is intentionally handled below by reloading the current storage objects.
+    }
+  }
+}
+async function replaceProductImages(productId,files){
+  const selected=Array.from(files||[]).slice(0,5);
+  if(!selected.length)return;
+  const old=await supabaseClient.from("product_images").select("id").eq("product_id",productId);
+  if(old.error)throw old.error;
+  if(old.data?.length){
+    const del=await supabaseClient.from("product_images").delete().eq("product_id",productId);
+    if(del.error)throw del.error;
+  }
+  for(let i=0;i<selected.length;i++){
+    const file=selected[i];
+    const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const path=productId+"/view"+(i+1)+"-"+Date.now()+"-"+i+"."+ext;
+    const upload=await supabaseClient.storage.from("product-images").upload(path,file,{upsert:false,contentType:file.type||"image/jpeg"});
+    if(upload.error)throw upload.error;
+    const publicUrl=supabaseClient.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+    const insert=await supabaseClient.from("product_images").insert({product_id:productId,image_url:publicUrl,sort_order:i+1,is_primary:i===0});
+    if(insert.error)throw insert.error;
+  }
+}
+async function saveInventory(productId,sizes){
+  const rows=sizes.map(function(size){
+    const input=document.querySelector('[data-stock-size="'+size+'"]');
+    return {product_id:productId,size,stock_qty:Math.max(0,Number(input?.value||0))};
+  });
+  const {error}=await supabaseClient.from("inventory").upsert(rows,{onConflict:"product_id,size"});
+  if(error)throw error;
+  const {data:existing}=await supabaseClient.from("inventory").select("size").eq("product_id",productId);
+  if(existing){
+    const keep=new Set(sizes);
+    const remove=existing.map(r=>r.size).filter(size=>!keep.has(size));
+    if(remove.length)await supabaseClient.from("inventory").delete().eq("product_id",productId).in("size",remove);
+  }
+}
 async function saveAdminProduct(event){
   event.preventDefault();
   const id=document.getElementById("productId").value;
@@ -190,14 +293,26 @@ async function saveAdminProduct(event){
   const description=document.getElementById("productDescription").value.trim()||null;
   const sizes=Array.from(document.getElementById("productSizes").selectedOptions).map(function(o){return o.value;});
   const isActive=document.getElementById("productActive").checked;
+  const files=Array.from(document.getElementById("productImages").files||[]).slice(0,5);
   if(!name||!categoryId||!Number.isFinite(price)||price<0||!sizes.length){setFormMessage("Please enter name, category, price and at least one size.","error");return;}
+  if(files.length>5){setFormMessage("You can upload a maximum of 5 images.","error");return;}
   const base={name,slug:slugify(name),category_id:categoryId,description,price,compare_at_price:compareAt,badge,sizes,is_active:isActive};
-  setFormMessage("Saving…");
+  setFormMessage("Saving product…");
   const result=id?await supabaseClient.from("products").update(base).eq("id",id).select().single():await supabaseClient.from("products").insert(base).select().single();
   if(result.error){setFormMessage(result.error.message,"error");return;}
-  setFormMessage("Product saved successfully.","success");
+  const productId=result.data.id;
+  try{
+    if(files.length)await replaceProductImages(productId,files);
+    await saveInventory(productId,sizes);
+  }catch(error){
+    console.error(error);
+    setFormMessage("Product saved, but images/stock could not be saved: "+error.message,"error");
+    await loadAdminProducts();
+    return;
+  }
+  setFormMessage("Product, images and stock saved successfully.","success");
   await loadAdminProducts();
-  setTimeout(closeProductEditor,350);
+  setTimeout(closeProductEditor,500);
 }
 function editAdminProduct(id){
   const product=adminProducts.find(function(p){return p.id===id;});
@@ -218,6 +333,12 @@ document.getElementById("addProductBtn").addEventListener("click",function(){ope
 document.getElementById("closeProductModal").addEventListener("click",closeProductEditor);
 document.getElementById("cancelProductBtn").addEventListener("click",closeProductEditor);
 document.getElementById("productForm").addEventListener("submit",saveAdminProduct);
+document.getElementById("productImages").addEventListener("change",previewSelectedImages);
+document.getElementById("productSizes").addEventListener("change",function(){
+  const sizes=Array.from(this.selectedOptions).map(function(o){return o.value;});
+  const currentRows=Array.from(document.querySelectorAll("[data-stock-size]")).map(function(input){return {size:input.dataset.stockSize,stock_qty:Number(input.value||0)};});
+  renderInventoryInputs(sizes,currentRows);
+});
 document.getElementById("refreshProductsBtn").addEventListener("click",initProductAdmin);
 document.getElementById("productSearch").addEventListener("input",renderAdminProducts);
 document.getElementById("productCategoryFilter").addEventListener("change",renderAdminProducts);
