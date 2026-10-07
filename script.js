@@ -18,30 +18,38 @@ let products = [
 let productsLoadedFromSupabase=false;
 async function loadStoreProducts(){
   try{
+    console.log("GenZ Men's: loading live Supabase catalog…");
     const {data,error}=await supabaseClient
       .from("products")
-      .select("id,name,slug,description,price,compare_at_price,badge,sizes,category_id,is_active,categories(name)")
+      .select("id,name,slug,description,price,compare_at_price,badge,sizes,category_id,is_active")
       .eq("is_active",true)
       .order("created_at",{ascending:false});
     if(error)throw error;
-    if(!data?.length)return;
+    if(!data?.length){
+      console.warn("GenZ Men's: Supabase returned 0 active products.");
+      return;
+    }
 
     const ids=data.map(p=>p.id);
-    const [{data:images,error:imageError},{data:stock,error:stockError}]=await Promise.all([
+    const [categoriesResult,imagesResult,stockResult]=await Promise.all([
+      supabaseClient.from("categories").select("id,name"),
       supabaseClient.from("product_images").select("product_id,image_url,sort_order,is_primary").in("product_id",ids).order("sort_order"),
       supabaseClient.from("inventory").select("product_id,size,stock_qty").in("product_id",ids)
     ]);
-    if(imageError)console.warn("Product image load failed:",imageError.message);
-    if(stockError)console.warn("Inventory load failed:",stockError.message);
+    if(categoriesResult.error)throw categoriesResult.error;
+    if(imagesResult.error)console.warn("Product image load failed:",imagesResult.error.message);
+    if(stockResult.error)console.warn("Inventory load failed:",stockResult.error.message);
 
+    const categoryMap={};
+    (categoriesResult.data||[]).forEach(x=>{categoryMap[x.id]=x.name;});
     const imageMap={},stockMap={};
-    (images||[]).forEach(x=>(imageMap[x.product_id]??=[]).push(x.image_url));
-    (stock||[]).forEach(x=>{(stockMap[x.product_id]??={})[x.size]=Number(x.stock_qty||0);});
+    (imagesResult.data||[]).forEach(x=>(imageMap[x.product_id]??=[]).push(x.image_url));
+    (stockResult.data||[]).forEach(x=>{(stockMap[x.product_id]??={})[x.size]=Number(x.stock_qty||0);});
 
     products=data.map(p=>({
       id:p.id,
       name:p.name,
-      category:p.categories?.name||"Uncategorized",
+      category:categoryMap[p.category_id]||"Uncategorized",
       price:Number(p.price||0),
       compare_at_price:p.compare_at_price,
       badge:p.badge||"",
@@ -51,9 +59,11 @@ async function loadStoreProducts(){
       inventory:stockMap[p.id]||{}
     }));
     productsLoadedFromSupabase=true;
+    console.log("GenZ Men's: live catalog loaded:",products.length,"product(s)",products.map(p=>p.name));
     renderProducts();
   }catch(error){
-    console.warn("Supabase catalog unavailable; using demo catalog.",error);
+    console.error("GenZ Men's: Supabase catalog load failed:",error);
+    console.warn("Using demo catalog because the live catalog could not be loaded.");
   }
 }
 
@@ -82,7 +92,6 @@ function img(p,v=1){
     return p.images[(v-1)%p.images.length] || p.images[0];
   }
   return typeof p?.id==="number" ? `Images/Product${String(p.id).padStart(2,"0")}/view${v}.jpg` : "";
-}
 }
 
 function renderProducts(){
