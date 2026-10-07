@@ -24,7 +24,7 @@ function showAdmin(){
   connectionStatus.textContent="Connected";
   connectionStatus.style.color="#69e39a";
   document.getElementById("pageTitle").textContent="Dashboard";
-  setTimeout(loadAdminOrders,0);
+  setTimeout(loadAllAdminData,0);
 }
 
 async function isAdminEmail(email){
@@ -94,6 +94,121 @@ loginForm.addEventListener("submit",async event=>{
 });
 document.getElementById("logoutBtn").addEventListener("click",async()=>{await supabaseClient.auth.signOut();showLogin();});
 
+
+// ===== LIVE CUSTOMERS / INVENTORY / PAYMENTS =====
+let adminCustomers=[];
+let adminInventory=[];
+let adminPayments=[];
+
+function setSectionMessage(id,message,type=""){
+  const el=document.getElementById(id);
+  if(el){el.textContent=message;el.style.color=type==="error"?"#c62828":type==="success"?"#21854a":"";}
+}
+
+async function loadAdminCustomers(){
+  const body=document.getElementById("customersTableBody"); if(!body)return;
+  setSectionMessage("customersMessage","Loading customers…");
+  const [{data:customers,error:ce},{data:orders,error:oe}]=await Promise.all([
+    supabaseClient.from("customers").select("id,full_name,phone,email,created_at").order("created_at",{ascending:false}),
+    supabaseClient.from("orders").select("customer_id,total")
+  ]);
+  if(ce||oe){
+    const error=ce||oe; console.error("Customers load failed:",error);
+    body.innerHTML='<tr><td colspan="7"><div class="empty"><strong>Could not load customers</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';
+    setSectionMessage("customersMessage",error.message,"error"); return;
+  }
+  const orderMap={};
+  (orders||[]).forEach(o=>{const id=o.customer_id;if(!id)return;orderMap[id]??={count:0,spent:0};orderMap[id].count++;orderMap[id].spent+=Number(o.total||0);});
+  adminCustomers=(customers||[]).map(c=>({...c,order_count:orderMap[c.id]?.count||0,spent:orderMap[c.id]?.spent||0}));
+  renderAdminCustomers();
+  document.getElementById("statCustomers").textContent=adminCustomers.length;
+  setSectionMessage("customersMessage",adminCustomers.length+" live customer(s) loaded.","success");
+}
+
+function renderAdminCustomers(){
+  const body=document.getElementById("customersTableBody"); if(!body)return;
+  const q=(document.getElementById("customerSearch")?.value||"").trim().toLowerCase();
+  const list=adminCustomers.filter(c=>!q||[c.full_name,c.phone,c.email].some(v=>String(v||"").toLowerCase().includes(q)));
+  if(!list.length){body.innerHTML='<tr><td colspan="7"><div class="empty"><strong>No customers found</strong><span>Customers are created automatically when an order is placed.</span></div></td></tr>';return;}
+  body.innerHTML=list.map(c=>{
+    const joined=new Date(c.created_at).toLocaleDateString("en-IN",{dateStyle:"medium"});
+    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(c.full_name)+'</strong><small>'+escapeHtml(c.id)+'</small></div></td>'+
+      '<td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.email||"—")+'</td><td>'+c.order_count+'</td><td>₹'+c.spent.toLocaleString("en-IN")+'</td><td>'+escapeHtml(joined)+'</td>'+
+      '<td><button type="button" class="secondary-btn customer-view-btn" data-customer-id="'+c.id+'">View</button></td></tr>';
+  }).join("");
+  body.querySelectorAll(".customer-view-btn").forEach(b=>b.addEventListener("click",()=>openCustomerDetails(b.dataset.customerId)));
+}
+
+async function openCustomerDetails(id){
+  const customer=adminCustomers.find(c=>c.id===id); if(!customer)return;
+  document.getElementById("customerModalTitle").textContent=customer.full_name;
+  const box=document.getElementById("customerDetailContent");
+  box.innerHTML='<p class="muted">Loading order history…</p>';
+  document.getElementById("customerModal").hidden=false;
+  const {data,error}=await supabaseClient.from("orders").select("order_number,total,order_status,payment_method,payment_status,created_at").eq("customer_id",id).order("created_at",{ascending:false});
+  if(error){box.innerHTML='<div class="empty"><strong>Could not load order history</strong><span>'+escapeHtml(error.message)+'</span></div>';return;}
+  box.innerHTML='<div class="customer-detail-card"><div><strong>Phone</strong><span>'+escapeHtml(customer.phone)+'</span></div><div><strong>Email</strong><span>'+escapeHtml(customer.email||"—")+'</span></div><div><strong>Total Orders</strong><span>'+customer.order_count+'</span></div><div><strong>Total Spent</strong><span>₹'+customer.spent.toLocaleString("en-IN")+'</span></div></div>'+
+    '<h3 class="subheading">Order History</h3>'+
+    ((data||[]).length?'<div class="table-wrap"><table class="admin-table"><thead><tr><th>ORDER</th><th>DATE</th><th>TOTAL</th><th>PAYMENT</th><th>STATUS</th></tr></thead><tbody>'+
+    data.map(o=>'<tr><td>'+escapeHtml(o.order_number)+'</td><td>'+escapeHtml(new Date(o.created_at).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}))+'</td><td>₹'+Number(o.total||0).toLocaleString("en-IN")+'</td><td>'+escapeHtml(o.payment_method||"—")+' · '+escapeHtml(o.payment_status||"Pending")+'</td><td>'+escapeHtml(o.order_status||"Pending")+'</td></tr>').join("")+
+    '</tbody></table></div>':'<div class="empty"><strong>No orders yet</strong><span>This customer has no orders.</span></div>');
+}
+function closeCustomerDetails(){const m=document.getElementById("customerModal");if(m)m.hidden=true;}
+
+async function loadAdminInventory(){
+  const body=document.getElementById("inventoryTableBody"); if(!body)return;
+  setSectionMessage("inventoryMessage","Loading inventory…");
+  const [{data:productsData,error:pe},{data:stock,error:ie}]=await Promise.all([
+    supabaseClient.from("products").select("id,name,category_id,is_active").order("name"),
+    supabaseClient.from("inventory").select("product_id,size,stock_qty")
+  ]);
+  if(pe||ie){const error=pe||ie;body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>Could not load inventory</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("inventoryMessage",error.message,"error");return;}
+  const catMap={};adminCategories.forEach(c=>catMap[c.id]=c.name);
+  const stockMap={};(stock||[]).forEach(x=>(stockMap[x.product_id]??={})[x.size]=Number(x.stock_qty||0));
+  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};return {...p,category:catMap[p.category_id]||"Uncategorized",stock:s,total:["S","M","L","XL","XXL"].reduce((a,k)=>a+(s[k]||0),0)};});
+  renderAdminInventory();
+  setSectionMessage("inventoryMessage",adminInventory.length+" product inventory record(s) loaded.","success");
+}
+function renderAdminInventory(){
+  const body=document.getElementById("inventoryTableBody");if(!body)return;
+  const q=(document.getElementById("inventorySearch")?.value||"").trim().toLowerCase();
+  const filter=document.getElementById("inventoryStockFilter")?.value||"All";
+  const list=adminInventory.filter(p=>{
+    const matchesQ=!q||p.name.toLowerCase().includes(q);
+    const vals=["S","M","L","XL","XXL"].map(k=>p.stock[k]??0);
+    const matches=filter==="All"||filter==="Low" ? (filter==="Low" ? vals.some(v=>v>0&&v<=5) : true) : filter==="Out" ? vals.some(v=>v===0) : vals.every(v=>v>=6);
+    return matchesQ&&matches;
+  });
+  if(!list.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>No inventory matches</strong><span>Try another search or stock filter.</span></div></td></tr>';return;}
+  body.innerHTML=list.map(p=>{
+    const cell=k=>{const n=Number(p.stock[k]??0);return '<span class="stock-number '+(n===0?"stock-out":n<=5?"stock-low":"stock-ok")+'">'+n+'</span>';};
+    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(p.name)+'</strong><small>'+(!p.is_active?"Inactive":"Active")+'</small></div></td><td>'+escapeHtml(p.category)+'</td><td>'+cell("S")+'</td><td>'+cell("M")+'</td><td>'+cell("L")+'</td><td>'+cell("XL")+'</td><td>'+cell("XXL")+'</td><td><strong>'+p.total+'</strong></td></tr>';
+  }).join("");
+}
+
+async function loadAdminPayments(){
+  const body=document.getElementById("paymentsTableBody");if(!body)return;
+  setSectionMessage("paymentsMessage","Loading payments…");
+  const {data,error}=await supabaseClient.from("orders").select("id,order_number,customer_name,customer_phone,payment_method,payment_status,total,created_at").order("created_at",{ascending:false});
+  if(error){body.innerHTML='<tr><td colspan="6"><div class="empty"><strong>Could not load payments</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("paymentsMessage",error.message,"error");return;}
+  adminPayments=data||[];
+  renderAdminPayments();
+  const sales=adminPayments.filter(o=>o.payment_status==="Paid").reduce((a,o)=>a+Number(o.total||0),0);
+  document.getElementById("statSales").textContent="₹"+sales.toLocaleString("en-IN");
+  setSectionMessage("paymentsMessage",adminPayments.length+" payment record(s) loaded.","success");
+}
+function renderAdminPayments(){
+  const body=document.getElementById("paymentsTableBody");if(!body)return;
+  const q=(document.getElementById("paymentSearch")?.value||"").trim().toLowerCase();
+  const status=document.getElementById("paymentStatusFilter")?.value||"All";
+  const method=document.getElementById("paymentMethodFilter")?.value||"All";
+  const list=adminPayments.filter(o=>(!q||[o.order_number,o.customer_name,o.customer_phone].some(v=>String(v||"").toLowerCase().includes(q)))&&(status==="All"||o.payment_status===status)&&(method==="All"||o.payment_method===method));
+  const summary={count:list.length,total:list.reduce((a,o)=>a+Number(o.total||0),0),pending:list.filter(o=>o.payment_status==="Pending").reduce((a,o)=>a+Number(o.total||0),0),paid:list.filter(o=>o.payment_status==="Paid").reduce((a,o)=>a+Number(o.total||0),0)};
+  document.getElementById("paymentSummary").innerHTML='<div><span>Records</span><strong>'+summary.count+'</strong></div><div><span>Value</span><strong>₹'+summary.total.toLocaleString("en-IN")+'</strong></div><div><span>Paid</span><strong>₹'+summary.paid.toLocaleString("en-IN")+'</strong></div><div><span>Pending</span><strong>₹'+summary.pending.toLocaleString("en-IN")+'</strong></div>';
+  if(!list.length){body.innerHTML='<tr><td colspan="6"><div class="empty"><strong>No payment records</strong><span>Orders will appear here after checkout.</span></div></td></tr>';return;}
+  body.innerHTML=list.map(o=>'<tr><td><strong>'+escapeHtml(o.order_number)+'</strong></td><td><div class="product-cell"><strong>'+escapeHtml(o.customer_name)+'</strong><small>'+escapeHtml(o.customer_phone)+'</small></div></td><td>'+escapeHtml(o.payment_method||"—")+'</td><td><span class="status-pill '+(o.payment_status==="Paid"?"status-active":"status-inactive")+'">'+escapeHtml(o.payment_status||"Pending")+'</span></td><td>₹'+Number(o.total||0).toLocaleString("en-IN")+'</td><td>'+escapeHtml(new Date(o.created_at).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}))+'</td></tr>').join("");
+}
+function loadAllAdminData(){loadAdminOrders();loadAdminCustomers();loadAdminInventory();loadAdminPayments();}
 
 // ===== LIVE ORDERS =====
 let adminOrders=[];
@@ -210,7 +325,7 @@ const closeOrderModalBtn=document.getElementById("closeOrderModal");
 if(closeOrderModalBtn)closeOrderModalBtn.addEventListener("click",closeOrderDetails);
 
 const navItems=document.querySelectorAll(".nav-item"),sections=document.querySelectorAll(".section"),pageTitle=document.getElementById("pageTitle");
-navItems.forEach(item=>item.addEventListener("click",()=>{const section=item.dataset.section;navItems.forEach(x=>x.classList.remove("active"));item.classList.add("active");sections.forEach(x=>x.classList.toggle("active",x.id===section));pageTitle.textContent=item.textContent.replace(/^\S+\s/,"").trim();}));
+navItems.forEach(item=>item.addEventListener("click",()=>{const section=item.dataset.section;navItems.forEach(x=>x.classList.remove("active"));item.classList.add("active");sections.forEach(x=>x.classList.toggle("active",x.id===section));pageTitle.textContent=item.textContent.replace(/^\S+\s/,"").trim();if(section==="customers")loadAdminCustomers();if(section==="inventory")loadAdminInventory();if(section==="payments")loadAdminPayments();}));
 
 supabaseClient.auth.onAuthStateChange((event,session)=>{
   if(event==="SIGNED_IN" && session && !isLoggingIn){
@@ -219,6 +334,18 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
     });
   }
 });
+
+
+const refreshCustomersBtn=document.getElementById("refreshCustomersBtn");if(refreshCustomersBtn)refreshCustomersBtn.addEventListener("click",loadAdminCustomers);
+const customerSearch=document.getElementById("customerSearch");if(customerSearch)customerSearch.addEventListener("input",renderAdminCustomers);
+const closeCustomerModalBtn=document.getElementById("closeCustomerModal");if(closeCustomerModalBtn)closeCustomerModalBtn.addEventListener("click",closeCustomerDetails);
+const refreshInventoryBtn=document.getElementById("refreshInventoryBtn");if(refreshInventoryBtn)refreshInventoryBtn.addEventListener("click",loadAdminInventory);
+const inventorySearch=document.getElementById("inventorySearch");if(inventorySearch)inventorySearch.addEventListener("input",renderAdminInventory);
+const inventoryStockFilter=document.getElementById("inventoryStockFilter");if(inventoryStockFilter)inventoryStockFilter.addEventListener("change",renderAdminInventory);
+const refreshPaymentsBtn=document.getElementById("refreshPaymentsBtn");if(refreshPaymentsBtn)refreshPaymentsBtn.addEventListener("click",loadAdminPayments);
+const paymentSearch=document.getElementById("paymentSearch");if(paymentSearch)paymentSearch.addEventListener("input",renderAdminPayments);
+const paymentStatusFilter=document.getElementById("paymentStatusFilter");if(paymentStatusFilter)paymentStatusFilter.addEventListener("change",renderAdminPayments);
+const paymentMethodFilter=document.getElementById("paymentMethodFilter");if(paymentMethodFilter)paymentMethodFilter.addEventListener("change",renderAdminPayments);
 
 checkSession();
 
