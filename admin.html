@@ -73,8 +73,26 @@
       </section>
 
       <section class="section" id="orders">
-        <div class="section-bar"><div><h2>Orders</h2><p>Track customer orders and status.</p></div></div>
-        <div class="panel"><div class="empty"><strong>No live orders yet</strong><span>Orders will appear here after the checkout flow is connected to Supabase.</span></div></div>
+        <div class="section-bar">
+          <div><h2>Orders</h2><p>Track customer orders, payment status and delivery progress.</p></div>
+          <button class="secondary-btn" id="refreshOrdersBtn" type="button">↻ Refresh</button>
+        </div>
+        <div class="panel">
+          <div class="admin-toolbar">
+            <input id="orderSearch" type="search" placeholder="Search order number, customer or phone…">
+            <select id="orderStatusFilter">
+              <option value="All">All Statuses</option>
+              <option>Pending</option><option>Confirmed</option><option>Processing</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option>
+            </select>
+          </div>
+          <div id="ordersMessage" class="admin-message"></div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>ORDER</th><th>CUSTOMER</th><th>DATE</th><th>TOTAL</th><th>PAYMENT</th><th>STATUS</th><th>ACTION</th></tr></thead>
+              <tbody id="ordersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section class="section" id="customers">
@@ -92,6 +110,16 @@
         <div class="panel"><div class="empty"><strong>Payment tracking ready</strong><span>Real payment gateway integration will be added separately.</span></div></div>
       </section>
     </main>
+  </div>
+
+  <div class="admin-modal" id="orderModal" hidden>
+    <div class="admin-modal-card">
+      <div class="admin-modal-head">
+        <div><p class="eyebrow">ORDER DETAILS</p><h2 id="orderModalTitle">Order</h2></div>
+        <button class="modal-close" id="closeOrderModal" type="button">×</button>
+      </div>
+      <div id="orderDetailContent"></div>
+    </div>
   </div>
 
   <div class="admin-modal" id="productModal" hidden>
