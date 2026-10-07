@@ -180,3 +180,9 @@ footer small{color:#8f99aa}
 .payment-method.active{border-color:var(--blue);background:#f4f8ff;box-shadow:0 0 0 1px var(--blue)}
 .payment-status{font-size:12px;color:#687386;background:#f7f9fd;border-radius:10px;padding:12px;margin:14px 0}
 @media(max-width:800px){.payment-layout{grid-template-columns:1fr}}
+
+.partial-advance-wrap{border:1px solid var(--border);background:#f8fbff;border-radius:12px;padding:12px 14px;margin:4px 0 12px}
+.partial-advance-wrap label{display:grid;gap:6px;font-size:12px;font-weight:800}.partial-advance-wrap input{width:100%;border:1px solid var(--border);border-radius:9px;padding:10px 12px;font:inherit;outline:none}.partial-advance-wrap input:focus{border-color:var(--blue)}.partial-advance-wrap small{font-size:10px;color:#7a8496;font-weight:600;line-height:1.4}
+.payment-method em{font-style:normal;font-size:9px;background:#e8f7ee;color:#21854a;border-radius:999px;padding:3px 6px;margin-left:5px;vertical-align:middle}
+.status-partial{background:#fff5d9;color:#a56a00}
+.payment-due-line{display:block;color:var(--muted);font-size:10px;margin-top:3px}
