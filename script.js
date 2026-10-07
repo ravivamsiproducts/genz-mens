@@ -515,7 +515,7 @@ function placeOrder(event){
   document.getElementById("paymentModal").classList.add("show");
 }
 
-const GENZ_UPI_ID=""; // Set your merchant UPI ID, e.g. merchant@bank
+const GENZ_UPI_ID="ravivamsi@ybl"; // GenZ Men merchant UPI ID
 const COD_UPI_ADVANCE=100;
 let selectedPayment="UPI";
 let pendingCheckout=null;
