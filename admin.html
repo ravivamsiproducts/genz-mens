@@ -96,18 +96,31 @@
       </section>
 
       <section class="section" id="customers">
-        <div class="section-bar"><div><h2>Customers</h2><p>Customer information and order history.</p></div></div>
-        <div class="panel"><div class="empty"><strong>Customer database ready</strong><span>Customer records will be loaded securely from Supabase.</span></div></div>
+        <div class="section-bar"><div><h2>Customers</h2><p>Live customer database and order history.</p></div><button class="secondary-btn" id="refreshCustomersBtn" type="button">↻ Refresh</button></div>
+        <div class="panel">
+          <div class="admin-toolbar"><input id="customerSearch" type="search" placeholder="Search name, phone or email…"></div>
+          <div id="customersMessage" class="admin-message"></div>
+          <div class="table-wrap"><table class="admin-table"><thead><tr><th>CUSTOMER</th><th>PHONE</th><th>EMAIL</th><th>ORDERS</th><th>SPENT</th><th>JOINED</th><th>ACTION</th></tr></thead><tbody id="customersTableBody"></tbody></table></div>
+        </div>
       </section>
 
       <section class="section" id="inventory">
-        <div class="section-bar"><div><h2>Inventory</h2><p>Track stock by product and size.</p></div></div>
-        <div class="panel"><div class="empty"><strong>Inventory management ready</strong><span>Stock quantities will sync with the inventory table.</span></div></div>
+        <div class="section-bar"><div><h2>Inventory</h2><p>Live stock by product and size.</p></div><button class="secondary-btn" id="refreshInventoryBtn" type="button">↻ Refresh</button></div>
+        <div class="panel">
+          <div class="admin-toolbar"><input id="inventorySearch" type="search" placeholder="Search product…"><select id="inventoryStockFilter"><option value="All">All Stock</option><option value="Low">Low Stock (1–5)</option><option value="Out">Out of Stock</option><option value="Healthy">Healthy (6+)</option></select></div>
+          <div id="inventoryMessage" class="admin-message"></div>
+          <div class="table-wrap"><table class="admin-table"><thead><tr><th>PRODUCT</th><th>CATEGORY</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th><th>TOTAL</th></tr></thead><tbody id="inventoryTableBody"></tbody></table></div>
+        </div>
       </section>
 
       <section class="section" id="payments">
-        <div class="section-bar"><div><h2>Payments</h2><p>Payment method and payment status.</p></div></div>
-        <div class="panel"><div class="empty"><strong>Payment tracking ready</strong><span>Real payment gateway integration will be added separately.</span></div></div>
+        <div class="section-bar"><div><h2>Payments</h2><p>Live payment method and payment status tracking.</p></div><button class="secondary-btn" id="refreshPaymentsBtn" type="button">↻ Refresh</button></div>
+        <div class="panel">
+          <div class="admin-toolbar"><input id="paymentSearch" type="search" placeholder="Search order, customer or phone…"><select id="paymentStatusFilter"><option value="All">All Payment Status</option><option>Pending</option><option>Paid</option><option>Failed</option><option>Refunded</option></select><select id="paymentMethodFilter"><option value="All">All Methods</option><option>COD</option><option>UPI</option><option>Card</option><option>Net Banking</option></select></div>
+          <div id="paymentsMessage" class="admin-message"></div>
+          <div class="payment-summary" id="paymentSummary"></div>
+          <div class="table-wrap"><table class="admin-table"><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>METHOD</th><th>STATUS</th><th>AMOUNT</th><th>DATE</th></tr></thead><tbody id="paymentsTableBody"></tbody></table></div>
+        </div>
       </section>
     </main>
   </div>
@@ -119,6 +132,13 @@
         <button class="modal-close" id="closeOrderModal" type="button">×</button>
       </div>
       <div id="orderDetailContent"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="customerModal" hidden>
+    <div class="admin-modal-card">
+      <div class="admin-modal-head"><div><p class="eyebrow">CUSTOMER DETAILS</p><h2 id="customerModalTitle">Customer</h2></div><button class="modal-close" id="closeCustomerModal" type="button">×</button></div>
+      <div id="customerDetailContent"></div>
     </div>
   </div>
 
@@ -169,6 +189,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=20261007-7"></script>
+  <script src="admin.js?v=20261007-8"></script>
 </body>
 </html>
