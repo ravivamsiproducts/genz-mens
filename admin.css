@@ -70,3 +70,16 @@ button{font:inherit}
   .admin-table{min-width:760px}
   .table-wrap{overflow-x:auto}
 }
+
+/* Live Customers / Inventory / Payments */
+.customer-detail-card{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.customer-detail-card>div{border:1px solid var(--border);border-radius:12px;padding:14px;background:#fbfcff}
+.customer-detail-card strong,.customer-detail-card span{display:block}.customer-detail-card strong{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}.customer-detail-card span{font-weight:800;font-size:14px}
+.subheading{font-size:16px;margin:8px 0 12px}
+.stock-number{display:inline-flex;min-width:34px;justify-content:center;padding:5px 8px;border-radius:7px;font-weight:800;font-size:12px}
+.stock-ok{background:#e8f7ee;color:#21854a}.stock-low{background:#fff5d9;color:#a56a00}.stock-out{background:#fdeaea;color:#c62828}
+.payment-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:8px 0 18px}
+.payment-summary>div{border:1px solid var(--border);border-radius:12px;padding:13px 15px;background:#fbfcff}
+.payment-summary span{display:block;color:var(--muted);font-size:11px}.payment-summary strong{display:block;font-size:20px;margin-top:4px}
+@media(max-width:760px){.customer-detail-card{grid-template-columns:1fr 1fr}.payment-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.customer-detail-card{grid-template-columns:1fr}.payment-summary{grid-template-columns:1fr}}
