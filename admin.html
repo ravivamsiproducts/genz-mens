@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenZ Men's Admin</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <div class="admin-logo">GenZ<span>Men's</span><small>ADMIN</small></div>
+      <nav>
+        <button class="nav-item active" data-section="dashboard">📊 Dashboard</button>
+        <button class="nav-item" data-section="products">📦 Products</button>
+        <button class="nav-item" data-section="orders">🛒 Orders</button>
+        <button class="nav-item" data-section="customers">👤 Customers</button>
+        <button class="nav-item" data-section="inventory">📋 Inventory</button>
+        <button class="nav-item" data-section="payments">💳 Payments</button>
+      </nav>
+      <div class="sidebar-foot">Supabase connection: <b id="connectionStatus">Not configured</b></div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="topbar">
+        <div><p class="eyebrow">GENZ MEN'S</p><h1 id="pageTitle">Dashboard</h1></div>
+        <button class="logout" id="logoutBtn">Logout</button>
+      </header>
+
+      <section class="section active" id="dashboard">
+        <div class="stats">
+          <div class="stat"><span>Products</span><strong id="statProducts">10</strong><small>Current demo catalog</small></div>
+          <div class="stat"><span>Orders</span><strong id="statOrders">0</strong><small>Will sync from Supabase</small></div>
+          <div class="stat"><span>Customers</span><strong id="statCustomers">0</strong><small>Will sync from Supabase</small></div>
+          <div class="stat"><span>Sales</span><strong id="statSales">₹0</strong><small>Will sync from Supabase</small></div>
+        </div>
+        <div class="panel">
+          <h2>Admin setup</h2>
+          <p>Database schema is ready. Supabase Auth and live database connection will be enabled after the Supabase project URL and anon key are configured.</p>
+        </div>
+      </section>
+
+      <section class="section" id="products">
+        <div class="section-bar"><div><h2>Products</h2><p>Manage your store catalog.</p></div><button class="primary" id="addProductBtn">+ Add Product</button></div>
+        <div class="panel"><div class="empty"><strong>Product management ready</strong><span>Live Add / Edit / Delete will connect to the Supabase products table in the next connection step.</span></div></div>
+      </section>
+
+      <section class="section" id="orders">
+        <div class="section-bar"><div><h2>Orders</h2><p>Track customer orders and status.</p></div></div>
+        <div class="panel"><div class="empty"><strong>No live orders yet</strong><span>Orders will appear here after the checkout flow is connected to Supabase.</span></div></div>
+      </section>
+
+      <section class="section" id="customers">
+        <div class="section-bar"><div><h2>Customers</h2><p>Customer information and order history.</p></div></div>
+        <div class="panel"><div class="empty"><strong>Customer database ready</strong><span>Customer records will be loaded securely from Supabase.</span></div></div>
+      </section>
+
+      <section class="section" id="inventory">
+        <div class="section-bar"><div><h2>Inventory</h2><p>Track stock by product and size.</p></div></div>
+        <div class="panel"><div class="empty"><strong>Inventory management ready</strong><span>Stock quantities will sync with the inventory table.</span></div></div>
+      </section>
+
+      <section class="section" id="payments">
+        <div class="section-bar"><div><h2>Payments</h2><p>Payment method and payment status.</p></div></div>
+        <div class="panel"><div class="empty"><strong>Payment tracking ready</strong><span>Real payment gateway integration will be added separately.</span></div></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="admin.js?v=20261007-1"></script>
+</body>
+</html>
