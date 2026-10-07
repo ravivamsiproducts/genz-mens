@@ -50,3 +50,23 @@ button{font:inherit}
 .stock-field{display:grid;gap:5px}.stock-field span{font-size:11px;font-weight:800;color:var(--muted)}
 .stock-field input{width:100%}
 @media(max-width:650px){.product-image-preview{grid-template-columns:repeat(3,1fr)}.inventory-grid{grid-template-columns:repeat(2,1fr)}.subsection-title{display:grid}}
+
+
+/* Live orders */
+.admin-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.admin-toolbar input,.admin-toolbar select,.order-status-select{border:1px solid #dce3ee;border-radius:10px;padding:10px 12px;background:#fff;font:inherit}
+.admin-toolbar input{flex:1;min-width:240px}
+.secondary-btn{border:1px solid #dce3ee;background:#fff;color:#111827;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+.secondary-btn:hover{background:#f6f8fb}
+.admin-table{width:100%;border-collapse:collapse}
+.admin-table th,.admin-table td{padding:14px 12px;border-bottom:1px solid #e6ebf2;text-align:left;vertical-align:middle}
+.admin-table th{font-size:13px;color:#68778d;letter-spacing:.04em}
+.order-status-select{padding:8px 10px;min-width:125px}
+.order-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px}
+.order-detail-grid p{line-height:1.7;color:#5f6b7a}
+.order-detail-actions{margin-top:18px;padding-top:16px;border-top:1px solid #e6ebf2;color:#5f6b7a}
+@media(max-width:760px){
+  .order-detail-grid{grid-template-columns:1fr}
+  .admin-table{min-width:760px}
+  .table-wrap{overflow-x:auto}
+}
