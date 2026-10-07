@@ -7,7 +7,21 @@
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
-  <div class="admin-shell">
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="admin-logo">GenZ<span>Men's</span><small>ADMIN</small></div>
+      <h1>Admin Login</h1>
+      <p>Sign in with your authorized Supabase account.</p>
+      <form id="loginForm">
+        <label>Email<input id="loginEmail" type="email" autocomplete="username" required placeholder="admin@example.com"></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Password"></label>
+        <button class="primary full" type="submit">Sign In →</button>
+        <div class="login-status" id="loginStatus"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-shell" id="adminShell" hidden>
     <aside class="sidebar">
       <div class="admin-logo">GenZ<span>Men's</span><small>ADMIN</small></div>
       <nav>
@@ -67,6 +81,7 @@
     </main>
   </div>
 
-  <script src="admin.js?v=20261007-1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="admin.js?v=20261007-2"></script>
 </body>
 </html>
