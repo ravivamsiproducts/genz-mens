@@ -139,6 +139,11 @@ function openProduct(id){
       selectedSize=size;
       document.querySelectorAll("#sizes button").forEach(x=>x.classList.remove("selected"));
       b.classList.add("selected");
+      const selectedStock=Number(current.inventory?.[selectedSize]??0);
+      if(addButton){
+        addButton.textContent=selectedStock===0 && Object.keys(current.inventory||{}).length?"Out of Stock":"Add to Cart";
+        addButton.disabled=selectedStock===0 && Object.keys(current.inventory||{}).length>0;
+      }
     };
   });
 
