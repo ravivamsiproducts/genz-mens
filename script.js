@@ -515,55 +515,108 @@ function placeOrder(event){
   document.getElementById("paymentModal").classList.add("show");
 }
 
+const GENZ_UPI_ID=""; // Set your merchant UPI ID, e.g. merchant@bank
+const COD_UPI_ADVANCE=100;
 let selectedPayment="UPI";
 let pendingCheckout=null;
 
+function cartSubtotal(){
+  return cart.reduce((sum,item)=>{
+    const p=products.find(x=>String(x.id)===String(item.id));
+    return sum+(p?Number(p.price||0)*(item.qty||1):0);
+  },0);
+}
+
+function paymentBreakdown(){
+  const subtotal=cartSubtotal();
+  if(selectedPayment==="COD"){
+    return {subtotal,delivery:COD_UPI_ADVANCE,upfront:COD_UPI_ADVANCE,due:subtotal,total:subtotal+COD_UPI_ADVANCE};
+  }
+  if(selectedPayment==="UPI Advance + COD"){
+    let advance=Number(document.getElementById("partialAdvanceAmount")?.value||0);
+    advance=Math.max(100,Math.floor(advance||100));
+    if(subtotal<=100)advance=Math.max(0,subtotal-1);
+    advance=Math.min(advance,Math.max(0,subtotal-1));
+    return {subtotal,delivery:0,upfront:advance,due:Math.max(0,subtotal-advance),total:subtotal};
+  }
+  return {subtotal,delivery:0,upfront:subtotal,due:0,total:subtotal};
+}
+
+function upiPaymentUrl(amount,orderNumber){
+  if(!GENZ_UPI_ID)return "";
+  const params=new URLSearchParams({
+    pa:GENZ_UPI_ID,pn:"GenZ Men's",am:Number(amount).toFixed(2),cu:"INR",
+    tn:"GenZ Men's "+orderNumber
+  });
+  return "upi://pay?"+params.toString();
+}
+
+function openUpiPayment(amount,orderNumber){
+  const url=upiPaymentUrl(amount,orderNumber);
+  if(!url){
+    alert("UPI payment is not configured yet. Add the GenZ Men's merchant UPI ID in script.js before accepting online/advance payments.");
+    return false;
+  }
+  window.location.href=url;
+  return true;
+}
+
 function renderPayment(){
   const box=document.getElementById("paymentItems");
-  let total=0;
-
   box.innerHTML=cart.map(item=>{
-    const p=products.find(x=>x.id===item.id);
+    const p=products.find(x=>String(x.id)===String(item.id));
     const qty=item.qty||1;
-    total+=p.price*qty;
-
-    return `
-      <div class="checkout-item">
-        <img src="${img(p)}" alt="${p.name}">
-        <div class="checkout-item-info">
-          <b>${p.name}</b>
-          <span>Size: ${item.size} • Qty: ${qty}</span>
-        </div>
-        <strong class="checkout-item-price">₹${(p.price*qty).toLocaleString("en-IN")}</strong>
-      </div>
-    `;
+    return '<div class="checkout-item"><img src="'+img(p)+'" alt="'+p.name+'"><div class="checkout-item-info"><b>'+p.name+'</b><span>Size: '+item.size+' • Qty: '+qty+'</span></div><strong class="checkout-item-price">₹'+(Number(p.price||0)*qty).toLocaleString("en-IN")+'</strong></div>';
   }).join("");
-
-  document.getElementById("paymentSubtotal").textContent=`₹${total.toLocaleString("en-IN")}`;
-  document.getElementById("paymentTotal").textContent=`₹${total.toLocaleString("en-IN")}`;
+  const b=paymentBreakdown();
+  document.getElementById("paymentSubtotal").textContent="₹"+b.subtotal.toLocaleString("en-IN");
+  document.getElementById("paymentDelivery").textContent=b.delivery?"₹"+b.delivery.toLocaleString("en-IN"):"FREE";
+  document.getElementById("paymentAdvance").textContent="₹"+b.upfront.toLocaleString("en-IN");
+  document.getElementById("paymentDue").textContent="₹"+b.due.toLocaleString("en-IN");
+  document.getElementById("paymentTotal").textContent="₹"+b.total.toLocaleString("en-IN");
+  const dueRow=document.getElementById("paymentDueRow");
+  if(dueRow)dueRow.hidden=selectedPayment==="UPI";
+  const status=document.getElementById("paymentStatus");
+  const partialWrap=document.getElementById("partialAdvanceWrap");
+  if(partialWrap)partialWrap.hidden=selectedPayment!=="UPI Advance + COD";
+  if(status){
+    if(selectedPayment==="COD"){
+      status.textContent="COD selected. ₹100 will be paid in advance via UPI as a COD handling charge. You will still pay the full product amount on delivery.";
+    }else if(selectedPayment==="UPI Advance + COD"){
+      status.textContent="Partial Payment selected. Pay the chosen advance via UPI now; the remaining product balance is due on delivery.";
+    }else{
+      status.textContent="UPI selected. The full order value will be paid via UPI.";
+    }
+  }
+  const button=document.querySelector("#paymentModal .primary-btn.full");
+  if(button){
+    button.textContent=selectedPayment==="UPI"?"Pay Full Amount via UPI →":selectedPayment==="COD"?"Pay ₹100 Advance via UPI →":"Pay Advance via UPI →";
+  }
 }
 
 function selectPayment(method,el){
   selectedPayment=method;
   document.querySelectorAll(".payment-method").forEach(x=>x.classList.remove("active"));
   el.classList.add("active");
-
-  const status=document.getElementById("paymentStatus");
-  if(status){
-    status.textContent =
-      method==="COD"
-        ? "Cash on Delivery selected. Actual order confirmation will be connected later."
-        : `${method} selected. Actual payment gateway will be connected later.`;
-  }
+  renderPayment();
 }
 
 async function continuePayment(){
   if(!pendingCheckout||!cart.length){alert("Your cart is empty.");return;}
+  const breakdown=paymentBreakdown();
+  if((selectedPayment==="UPI"||selectedPayment==="COD"||selectedPayment==="UPI Advance + COD")&&!GENZ_UPI_ID){
+    alert("UPI payment is not configured yet. Please add the GenZ Men's merchant UPI ID in script.js first.");
+    return;
+  }
+  if(selectedPayment==="UPI Advance + COD"&&breakdown.upfront>=breakdown.subtotal){
+    alert("For Partial Payment, the UPI advance must be less than the order value.");
+    return;
+  }
   const button=document.querySelector("#paymentModal .primary-btn.full");
-  if(button){button.disabled=true;button.textContent="Placing Order...";}
+  if(button){button.disabled=true;button.textContent="Creating Order...";}
   try{
     const items=cart.map(item=>({product_id:item.id,size:item.size,quantity:item.qty||1}));
-    const result=await supabaseClient.rpc("create_store_order",{
+    const result=await supabaseClient.rpc("create_store_order_v2",{
       p_customer_name:pendingCheckout.customer_name,
       p_customer_phone:pendingCheckout.customer_phone,
       p_customer_email:pendingCheckout.customer_email,
@@ -573,21 +626,22 @@ async function continuePayment(){
       p_city:pendingCheckout.city,
       p_state:pendingCheckout.state,
       p_payment_method:selectedPayment,
+      p_upfront_amount:breakdown.upfront,
       p_items:items
     });
     if(result.error)throw result.error;
-    cart=[];
-    saveCart();
-    pendingCheckout=null;
-    closePayment();
-    renderCart();
-    alert("Order placed successfully!\nOrder Number: "+result.data.order_number+"\nTotal: ₹"+Number(result.data.total).toLocaleString("en-IN"));
+    cart=[];saveCart();pendingCheckout=null;closePayment();renderCart();
+    const paidNow=Number(result.data.upfront_amount||breakdown.upfront);
+    const due=Number(result.data.amount_due||breakdown.due);
+    const total=Number(result.data.total||breakdown.total);
+    alert("Order created successfully!\nOrder Number: "+result.data.order_number+"\nUPI to pay now: ₹"+paidNow.toLocaleString("en-IN")+"\nAmount due on delivery: ₹"+due.toLocaleString("en-IN")+"\nOrder value: ₹"+total.toLocaleString("en-IN"));
+    setTimeout(()=>openUpiPayment(paidNow,result.data.order_number),250);
   }catch(error){
     console.error("Order creation failed:",error);
     const detail=error?.message||error?.details||error?.hint||"Unknown error";
-    alert("Order could not be saved.\\n\\nReason: "+detail);
+    alert("Order could not be saved.\n\nReason: "+detail);
   }finally{
-    if(button){button.disabled=false;button.textContent="Continue";}
+    if(button){button.disabled=false;button.textContent="Continue →";}
   }
 }
 
