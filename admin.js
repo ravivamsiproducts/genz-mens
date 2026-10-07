@@ -105,3 +105,121 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 });
 
 checkSession();
+
+let adminProducts=[];
+let adminCategories=[];
+
+function setAdminMessage(message,type=""){
+  const el=document.getElementById("productMessage");
+  if(el){el.textContent=message;el.style.color=type==="error"?"#c62828":type==="success"?"#21854a":"";}
+}
+function setFormMessage(message,type=""){
+  const el=document.getElementById("productFormMessage");
+  if(el){el.textContent=message;el.style.color=type==="error"?"#c62828":type==="success"?"#21854a":"";}
+}
+function slugify(value){
+  return value.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+}
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m];});
+}
+async function loadCategories(){
+  const {data,error}=await supabaseClient.from("categories").select("id,name,slug,is_active").order("name");
+  if(error){setAdminMessage("Could not load categories: "+error.message,"error");return;}
+  adminCategories=data||[];
+  document.getElementById("productCategoryFilter").innerHTML='<option value="All">All Categories</option>'+adminCategories.map(function(c){return '<option value="'+c.id+'">'+escapeHtml(c.name)+'</option>';}).join("");
+  document.getElementById("productCategory").innerHTML=adminCategories.map(function(c){return '<option value="'+c.id+'">'+escapeHtml(c.name)+'</option>';}).join("");
+}
+function categoryName(id){
+  const c=adminCategories.find(function(x){return x.id===id;});
+  return c?c.name:"Uncategorized";
+}
+function renderAdminProducts(){
+  const body=document.getElementById("productTableBody");
+  const q=(document.getElementById("productSearch").value||"").trim().toLowerCase();
+  const cat=document.getElementById("productCategoryFilter").value||"All";
+  const list=adminProducts.filter(function(p){
+    return (!q || p.name.toLowerCase().includes(q) || (p.slug||"").includes(q)) && (cat==="All" || p.category_id===cat);
+  });
+  if(!list.length){
+    body.innerHTML='<tr><td colspan="6"><div class="empty"><strong>No products in Supabase yet</strong><span>Click + Add Product to create your first live product.</span></div></td></tr>';
+    return;
+  }
+  body.innerHTML=list.map(function(p){
+    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(p.name)+'</strong><small>'+escapeHtml(p.slug||"")+'</small></div></td>'+
+      '<td>'+escapeHtml(categoryName(p.category_id))+'</td>'+
+      '<td>₹'+Number(p.price||0).toLocaleString("en-IN")+'</td>'+
+      '<td><span class="status-pill '+(p.is_active?"status-active":"status-inactive")+'">'+(p.is_active?"Active":"Inactive")+'</span></td>'+
+      '<td>'+escapeHtml((p.sizes||[]).join(", "))+'</td>'+
+      '<td><div class="action-group"><button class="table-btn" type="button" onclick="editAdminProduct(\''+p.id+'\')">Edit</button><button class="table-btn delete" type="button" onclick="deleteAdminProduct(\''+p.id+'\')">Delete</button></div></td></tr>';
+  }).join("");
+}
+async function loadAdminProducts(){
+  setAdminMessage("Loading products…");
+  const {data,error}=await supabaseClient.from("products").select("*").order("created_at",{ascending:false});
+  if(error){setAdminMessage("Could not load products: "+error.message,"error");return;}
+  adminProducts=data||[];
+  renderAdminProducts();
+  document.getElementById("statProducts").textContent=adminProducts.length;
+  setAdminMessage(adminProducts.length?adminProducts.length+" live product(s) loaded.":"No products yet.");
+}
+function openProductEditor(product=null){
+  document.getElementById("productModalTitle").textContent=product?"Edit Product":"Add Product";
+  document.getElementById("productId").value=product?.id||"";
+  document.getElementById("productName").value=product?.name||"";
+  document.getElementById("productCategory").value=product?.category_id||adminCategories[0]?.id||"";
+  document.getElementById("productPrice").value=product?.price??"";
+  document.getElementById("productComparePrice").value=product?.compare_at_price??"";
+  document.getElementById("productBadge").value=product?.badge||"";
+  document.getElementById("productDescription").value=product?.description||"";
+  document.getElementById("productActive").checked=product?.is_active!==false;
+  const sizes=product?.sizes||["S","M","L","XL","XXL"];
+  Array.from(document.getElementById("productSizes").options).forEach(function(o){o.selected=sizes.includes(o.value);});
+  setFormMessage("");
+  document.getElementById("productModal").hidden=false;
+}
+function closeProductEditor(){document.getElementById("productModal").hidden=true;}
+async function saveAdminProduct(event){
+  event.preventDefault();
+  const id=document.getElementById("productId").value;
+  const name=document.getElementById("productName").value.trim();
+  const categoryId=document.getElementById("productCategory").value;
+  const price=Number(document.getElementById("productPrice").value);
+  const compareRaw=document.getElementById("productComparePrice").value;
+  const compareAt=compareRaw===""?null:Number(compareRaw);
+  const badge=document.getElementById("productBadge").value.trim()||null;
+  const description=document.getElementById("productDescription").value.trim()||null;
+  const sizes=Array.from(document.getElementById("productSizes").selectedOptions).map(function(o){return o.value;});
+  const isActive=document.getElementById("productActive").checked;
+  if(!name||!categoryId||!Number.isFinite(price)||price<0||!sizes.length){setFormMessage("Please enter name, category, price and at least one size.","error");return;}
+  const base={name,slug:slugify(name),category_id:categoryId,description,price,compare_at_price:compareAt,badge,sizes,is_active:isActive};
+  setFormMessage("Saving…");
+  const result=id?await supabaseClient.from("products").update(base).eq("id",id).select().single():await supabaseClient.from("products").insert(base).select().single();
+  if(result.error){setFormMessage(result.error.message,"error");return;}
+  setFormMessage("Product saved successfully.","success");
+  await loadAdminProducts();
+  setTimeout(closeProductEditor,350);
+}
+function editAdminProduct(id){
+  const product=adminProducts.find(function(p){return p.id===id;});
+  if(product) openProductEditor(product);
+}
+async function deleteAdminProduct(id){
+  const product=adminProducts.find(function(p){return p.id===id;});
+  if(!product)return;
+  if(!confirm('Delete "'+product.name+'"? This will also remove its inventory and product images.'))return;
+  setAdminMessage("Deleting…");
+  const {error}=await supabaseClient.from("products").delete().eq("id",id);
+  if(error){setAdminMessage("Delete failed: "+error.message,"error");return;}
+  await loadAdminProducts();
+  setAdminMessage("Product deleted.","success");
+}
+async function initProductAdmin(){await loadCategories();await loadAdminProducts();}
+document.getElementById("addProductBtn").addEventListener("click",function(){openProductEditor();});
+document.getElementById("closeProductModal").addEventListener("click",closeProductEditor);
+document.getElementById("cancelProductBtn").addEventListener("click",closeProductEditor);
+document.getElementById("productForm").addEventListener("submit",saveAdminProduct);
+document.getElementById("refreshProductsBtn").addEventListener("click",initProductAdmin);
+document.getElementById("productSearch").addEventListener("input",renderAdminProducts);
+document.getElementById("productCategoryFilter").addEventListener("change",renderAdminProducts);
+initProductAdmin();
