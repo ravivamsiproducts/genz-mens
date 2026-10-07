@@ -231,7 +231,7 @@
 
           <div id="partialAdvanceWrap" class="partial-advance-wrap" hidden>
             <label>UPI Advance Amount (₹)
-              <input id="partialAdvanceAmount" type="number" min="100" step="1" value="100" inputmode="decimal">
+              <input id="partialAdvanceAmount" type="number" min="100" step="1" value="100" inputmode="decimal" oninput="renderPayment()">
               <small>Enter the amount you want to pay now. The remaining balance is due on delivery.</small>
             </label>
           </div>
@@ -244,7 +244,7 @@
           <h3>Order Summary</h3>
           <div id="paymentItems"></div>
           <div class="summary-line"><span>Subtotal</span><strong id="paymentSubtotal">₹0</strong></div>
-          <div class="summary-line"><span>COD Charge</span><strong id="paymentDelivery">FREE</strong></div>
+          <div class="summary-line"><span>COD Handling Charge</span><strong id="paymentDelivery">FREE</strong></div>
           <div class="summary-line" id="paymentAdvanceRow"><span>UPI Paid Now</span><strong id="paymentAdvance">₹0</strong></div>
           <div class="summary-line" id="paymentDueRow"><span>Due on Delivery</span><strong id="paymentDue">₹0</strong></div>
           <div class="summary-total"><span>Total Order Value</span><strong id="paymentTotal">₹0</strong></div>
@@ -268,6 +268,6 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=20261007-9"></script>
+  <script src="script.js?v=20261007-10"></script>
 </body>
 </html>
