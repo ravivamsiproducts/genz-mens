@@ -220,19 +220,23 @@
       <div class="payment-layout">
         <div class="payment-methods">
           <button type="button" class="payment-method active" onclick="selectPayment('UPI',this)">
-            <span>📱</span><div><strong>UPI</strong><small>Pay using UPI apps</small></div>
-          </button>
-          <button type="button" class="payment-method" onclick="selectPayment('Card',this)">
-            <span>💳</span><div><strong>Credit / Debit Card</strong><small>Visa, Mastercard & more</small></div>
-          </button>
-          <button type="button" class="payment-method" onclick="selectPayment('Net Banking',this)">
-            <span>🏦</span><div><strong>Net Banking</strong><small>Pay through your bank</small></div>
+            <span>📱</span><div><strong>UPI <em>Recommended</em></strong><small>Pay the full amount securely via UPI</small></div>
           </button>
           <button type="button" class="payment-method" onclick="selectPayment('COD',this)">
-            <span>💵</span><div><strong>Cash on Delivery</strong><small>Pay when your order arrives</small></div>
+            <span>💵</span><div><strong>Cash on Delivery</strong><small>Pay ₹100 advance via UPI, then the full product amount on delivery</small></div>
+          </button>
+          <button type="button" class="payment-method" onclick="selectPayment('UPI Advance + COD',this)">
+            <span>🧾</span><div><strong>Partial Payment</strong><small>Pay an advance via UPI, balance on delivery</small></div>
           </button>
 
-          <div id="paymentStatus" class="payment-status">Demo payment screen — no payment will be charged.</div>
+          <div id="partialAdvanceWrap" class="partial-advance-wrap" hidden>
+            <label>UPI Advance Amount (₹)
+              <input id="partialAdvanceAmount" type="number" min="100" step="1" value="100" inputmode="decimal">
+              <small>Enter the amount you want to pay now. The remaining balance is due on delivery.</small>
+            </label>
+          </div>
+
+          <div id="paymentStatus" class="payment-status"></div>
           <button class="primary-btn full" type="button" onclick="continuePayment()">Continue →</button>
         </div>
 
@@ -240,8 +244,10 @@
           <h3>Order Summary</h3>
           <div id="paymentItems"></div>
           <div class="summary-line"><span>Subtotal</span><strong id="paymentSubtotal">₹0</strong></div>
-          <div class="summary-line"><span>Delivery</span><strong>FREE</strong></div>
-          <div class="summary-total"><span>Total</span><strong id="paymentTotal">₹0</strong></div>
+          <div class="summary-line"><span>COD Charge</span><strong id="paymentDelivery">FREE</strong></div>
+          <div class="summary-line" id="paymentAdvanceRow"><span>UPI Paid Now</span><strong id="paymentAdvance">₹0</strong></div>
+          <div class="summary-line" id="paymentDueRow"><span>Due on Delivery</span><strong id="paymentDue">₹0</strong></div>
+          <div class="summary-total"><span>Total Order Value</span><strong id="paymentTotal">₹0</strong></div>
         </aside>
       </div>
     </div>
@@ -262,6 +268,6 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=20261007-8"></script>
+  <script src="script.js?v=20261007-9"></script>
 </body>
 </html>
