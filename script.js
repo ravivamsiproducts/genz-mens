@@ -658,3 +658,11 @@ function showView(v){if(!current)return;const count=current.images?.length||5;if
 function addCurrentToCart(){if(!current)return;const known=Object.keys(current.inventory||{}).length>0;const available=Number(current.inventory?.[selectedSize]??0);if(known&&available<=0){alert("This size is currently out of stock.");return;}const existing=cart.find(item=>String(item.id)===String(current.id)&&item.size===selectedSize);if(existing)existing.qty=Math.min(known?Math.min(9,available):9,(existing.qty||1)+1);else cart.push({id:current.id,size:selectedSize,qty:1});saveCart();closeProduct();openCart();}
 
 loadStoreProducts();
+document.addEventListener("click",function(e){
+  const el=e.target.closest(".product-open");
+  if(!el)return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id=el.getAttribute("data-product-id");
+  if(typeof openProduct==="function") openProduct(id);
+},true);
