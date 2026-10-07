@@ -117,6 +117,19 @@
           </select></label>
         </div>
         <label>Description<textarea id="productDescription" rows="4" placeholder="Product description"></textarea></label>
+
+        <div class="admin-subsection">
+          <div class="subsection-title"><strong>Product Images</strong><span>Up to 5 images • JPG, PNG or WebP</span></div>
+          <input id="productImages" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+          <div id="imageUploadHint" class="image-upload-hint">For a new product, choose the images you want to upload. When editing, leaving this empty keeps the existing images.</div>
+          <div id="productImagePreview" class="product-image-preview"></div>
+        </div>
+
+        <div class="admin-subsection">
+          <div class="subsection-title"><strong>Stock by Size</strong><span>Enter available quantity for each selected size</span></div>
+          <div id="inventoryGrid" class="inventory-grid"></div>
+        </div>
+
         <label class="check-row"><input id="productActive" type="checkbox" checked> Active product (visible in store)</label>
         <div id="productFormMessage" class="admin-message"></div>
         <div class="modal-actions">
@@ -128,6 +141,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=20261007-6"></script>
+  <script src="admin.js?v=20261007-7"></script>
 </body>
 </html>
