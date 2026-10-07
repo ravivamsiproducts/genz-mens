@@ -24,6 +24,7 @@ function showAdmin(){
   connectionStatus.textContent="Connected";
   connectionStatus.style.color="#69e39a";
   document.getElementById("pageTitle").textContent="Dashboard";
+  setTimeout(loadAdminOrders,0);
 }
 
 async function isAdminEmail(email){
@@ -92,6 +93,122 @@ loginForm.addEventListener("submit",async event=>{
   },100);
 });
 document.getElementById("logoutBtn").addEventListener("click",async()=>{await supabaseClient.auth.signOut();showLogin();});
+
+
+// ===== LIVE ORDERS =====
+let adminOrders=[];
+const orderStatuses=["Pending","Confirmed","Processing","Shipped","Delivered","Cancelled"];
+
+function setOrdersMessage(message,type=""){
+  const el=document.getElementById("ordersMessage");
+  if(el){el.textContent=message;el.style.color=type==="error"?"#c62828":type==="success"?"#21854a":"";}
+}
+
+async function loadAdminOrders(){
+  const body=document.getElementById("ordersTableBody");
+  if(!body)return;
+  setOrdersMessage("Loading orders…");
+  const {data,error}=await supabaseClient
+    .from("orders")
+    .select("id,order_number,customer_id,customer_name,customer_phone,customer_email,address_line,area_locality,pincode,city,state,subtotal,delivery_charge,total,order_status,payment_method,payment_status,created_at,updated_at")
+    .order("created_at",{ascending:false});
+  if(error){
+    console.error("Orders load failed:",error);
+    body.innerHTML='<tr><td colspan="7"><div class="empty"><strong>Could not load orders</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';
+    setOrdersMessage(error.message,"error");
+    return;
+  }
+  adminOrders=data||[];
+  renderAdminOrders();
+  setOrdersMessage(adminOrders.length+" live order(s) loaded.","success");
+  const stat=document.getElementById("statOrders");
+  if(stat)stat.textContent=adminOrders.length;
+}
+
+function renderAdminOrders(){
+  const body=document.getElementById("ordersTableBody");
+  if(!body)return;
+  const q=(document.getElementById("orderSearch")?.value||"").trim().toLowerCase();
+  const status=document.getElementById("orderStatusFilter")?.value||"All";
+  const list=adminOrders.filter(o=>{
+    const matchesQ=!q || [o.order_number,o.customer_name,o.customer_phone,o.customer_email].some(v=>String(v||"").toLowerCase().includes(q));
+    return matchesQ && (status==="All" || o.order_status===status);
+  });
+  if(!list.length){
+    body.innerHTML='<tr><td colspan="7"><div class="empty"><strong>No matching orders</strong><span>Orders created from the live checkout will appear here.</span></div></td></tr>';
+    return;
+  }
+  body.innerHTML=list.map(o=>{
+    const date=new Date(o.created_at).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"});
+    const statusOptions=orderStatuses.map(s=>'<option value="'+s+'" '+(s===o.order_status?"selected":"")+'>'+s+'</option>').join("");
+    return '<tr>'+
+      '<td><div class="product-cell"><strong>'+escapeHtml(o.order_number)+'</strong><small>'+escapeHtml(o.payment_status||"Pending")+'</small></div></td>'+
+      '<td><div class="product-cell"><strong>'+escapeHtml(o.customer_name)+'</strong><small>'+escapeHtml(o.customer_phone)+'</small></div></td>'+
+      '<td>'+escapeHtml(date)+'</td>'+
+      '<td>₹'+Number(o.total||0).toLocaleString("en-IN")+'</td>'+
+      '<td>'+escapeHtml(o.payment_method||"—")+'</td>'+
+      '<td><select class="order-status-select" data-order-status-id="'+o.id+'">'+statusOptions+'</select></td>'+
+      '<td><button type="button" class="secondary-btn order-view-btn" data-order-id="'+o.id+'">View</button></td>'+
+      '</tr>';
+  }).join("");
+  body.querySelectorAll(".order-status-select").forEach(el=>{
+    el.addEventListener("change",()=>updateOrderStatus(el.dataset.orderStatusId,el.value));
+  });
+  body.querySelectorAll(".order-view-btn").forEach(el=>{
+    el.addEventListener("click",()=>openOrderDetails(el.dataset.orderId));
+  });
+}
+
+async function updateOrderStatus(id,status){
+  const {error}=await supabaseClient.from("orders").update({order_status:status}).eq("id",id);
+  if(error){alert("Could not update order status: "+error.message);await loadAdminOrders();return;}
+  const order=adminOrders.find(o=>o.id===id);
+  if(order)order.order_status=status;
+  setOrdersMessage("Order status updated.","success");
+}
+
+async function openOrderDetails(id){
+  const order=adminOrders.find(o=>o.id===id);
+  if(!order)return;
+  const box=document.getElementById("orderDetailContent");
+  box.innerHTML='<p class="muted">Loading items…</p>';
+  document.getElementById("orderModalTitle").textContent=order.order_number;
+  document.getElementById("orderModal").hidden=false;
+  const {data,error}=await supabaseClient
+    .from("order_items")
+    .select("id,product_id,product_name,size,quantity,unit_price,line_total")
+    .eq("order_id",id);
+  if(error){
+    box.innerHTML='<div class="empty"><strong>Could not load order items</strong><span>'+escapeHtml(error.message)+'</span></div>';
+    return;
+  }
+  const items=data||[];
+  box.innerHTML=
+    '<div class="order-detail-grid">'+
+      '<div><strong>Customer</strong><p>'+escapeHtml(order.customer_name)+'<br>'+escapeHtml(order.customer_phone)+'<br>'+escapeHtml(order.customer_email||"")+'</p></div>'+
+      '<div><strong>Delivery Address</strong><p>'+escapeHtml(order.address_line)+'<br>'+escapeHtml(order.area_locality)+'<br>'+escapeHtml(order.city)+' - '+escapeHtml(order.pincode)+'<br>'+escapeHtml(order.state)+'</p></div>'+
+    '</div>'+
+    '<div class="table-wrap"><table class="admin-table"><thead><tr><th>PRODUCT</th><th>SIZE</th><th>QTY</th><th>PRICE</th><th>TOTAL</th></tr></thead><tbody>'+
+    items.map(i=>'<tr><td>'+escapeHtml(i.product_name)+'</td><td>'+escapeHtml(i.size)+'</td><td>'+i.quantity+'</td><td>₹'+Number(i.unit_price).toLocaleString("en-IN")+'</td><td>₹'+Number(i.line_total).toLocaleString("en-IN")+'</td></tr>').join("")+
+    '</tbody></table></div>'+
+    '<div class="summary-total"><span>Total</span><strong>₹'+Number(order.total||0).toLocaleString("en-IN")+'</strong></div>'+
+    '<div class="order-detail-actions"><span>Payment: <strong>'+escapeHtml(order.payment_method||"—")+'</strong> · '+escapeHtml(order.payment_status||"Pending")+'</span></div>';
+}
+
+function closeOrderDetails(){
+  const modal=document.getElementById("orderModal");
+  if(modal)modal.hidden=true;
+}
+
+const refreshOrdersBtn=document.getElementById("refreshOrdersBtn");
+if(refreshOrdersBtn)refreshOrdersBtn.addEventListener("click",loadAdminOrders);
+const orderSearch=document.getElementById("orderSearch");
+if(orderSearch)orderSearch.addEventListener("input",renderAdminOrders);
+const orderStatusFilter=document.getElementById("orderStatusFilter");
+if(orderStatusFilter)orderStatusFilter.addEventListener("change",renderAdminOrders);
+const closeOrderModalBtn=document.getElementById("closeOrderModal");
+if(closeOrderModalBtn)closeOrderModalBtn.addEventListener("click",closeOrderDetails);
+
 const navItems=document.querySelectorAll(".nav-item"),sections=document.querySelectorAll(".section"),pageTitle=document.getElementById("pageTitle");
 navItems.forEach(item=>item.addEventListener("click",()=>{const section=item.dataset.section;navItems.forEach(x=>x.classList.remove("active"));item.classList.add("active");sections.forEach(x=>x.classList.toggle("active",x.id===section));pageTitle.textContent=item.textContent.replace(/^\S+\s/,"").trim();}));
 
