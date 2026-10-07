@@ -10,12 +10,17 @@ const connectionStatus=document.getElementById("connectionStatus");
 let isLoggingIn=false;
 
 function showLogin(message=""){
-  loginScreen.hidden=false; adminShell.hidden=true;
+  loginScreen.hidden=false;
+  adminShell.hidden=true;
+  loginScreen.style.display="flex";
+  adminShell.style.display="none";
   if(message) loginStatus.textContent=message;
 }
 function showAdmin(){
   loginScreen.hidden=true;
   adminShell.hidden=false;
+  loginScreen.style.display="none";
+  adminShell.style.display="grid";
   connectionStatus.textContent="Connected";
   connectionStatus.style.color="#69e39a";
   document.getElementById("pageTitle").textContent="Dashboard";
@@ -79,9 +84,12 @@ loginForm.addEventListener("submit",async event=>{
     return;
   }
 
-  loginStatus.textContent="";
-  showAdmin();
-  isLoggingIn=false;
+  loginStatus.style.color="#2b8a3e";
+  loginStatus.textContent="Login successful. Opening Admin Dashboard…";
+  setTimeout(()=>{
+    showAdmin();
+    isLoggingIn=false;
+  },100);
 });
 document.getElementById("logoutBtn").addEventListener("click",async()=>{await supabaseClient.auth.signOut();showLogin();});
 const navItems=document.querySelectorAll(".nav-item"),sections=document.querySelectorAll(".section"),pageTitle=document.getElementById("pageTitle");
