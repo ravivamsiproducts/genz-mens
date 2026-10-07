@@ -68,12 +68,14 @@ create table if not exists public.orders (
   subtotal numeric(10,2) not null default 0 check (subtotal >= 0),
   delivery_charge numeric(10,2) not null default 0 check (delivery_charge >= 0),
   total numeric(10,2) not null default 0 check (total >= 0),
+  upfront_amount numeric(10,2) not null default 0 check (upfront_amount >= 0),
+  amount_due numeric(10,2) not null default 0 check (amount_due >= 0),
   order_status text not null default 'Pending'
     check (order_status in ('Pending','Confirmed','Processing','Shipped','Delivered','Cancelled')),
   payment_method text
-    check (payment_method is null or payment_method in ('UPI','Card','Net Banking','COD')),
+    check (payment_method is null or payment_method in ('UPI','Card','Net Banking','COD','UPI Advance + COD')),
   payment_status text not null default 'Pending'
-    check (payment_status in ('Pending','Paid','Failed','Refunded')),
+    check (payment_status in ('Pending','Partially Paid','Paid','Failed','Refunded')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
