@@ -94,7 +94,6 @@ loginForm.addEventListener("submit",async event=>{
 document.getElementById("logoutBtn").addEventListener("click",async()=>{await supabaseClient.auth.signOut();showLogin();});
 const navItems=document.querySelectorAll(".nav-item"),sections=document.querySelectorAll(".section"),pageTitle=document.getElementById("pageTitle");
 navItems.forEach(item=>item.addEventListener("click",()=>{const section=item.dataset.section;navItems.forEach(x=>x.classList.remove("active"));item.classList.add("active");sections.forEach(x=>x.classList.toggle("active",x.id===section));pageTitle.textContent=item.textContent.replace(/^\S+\s/,"").trim();}));
-document.getElementById("addProductBtn").addEventListener("click",()=>alert("Product editor is the next Admin step."));
 
 supabaseClient.auth.onAuthStateChange((event,session)=>{
   if(event==="SIGNED_IN" && session && !isLoggingIn){
