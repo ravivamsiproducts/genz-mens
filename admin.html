@@ -116,7 +116,7 @@
       <section class="section" id="payments">
         <div class="section-bar"><div><h2>Payments</h2><p>Live payment method and payment status tracking.</p></div><button class="secondary-btn" id="refreshPaymentsBtn" type="button">↻ Refresh</button></div>
         <div class="panel">
-          <div class="admin-toolbar"><input id="paymentSearch" type="search" placeholder="Search order, customer or phone…"><select id="paymentStatusFilter"><option value="All">All Payment Status</option><option>Pending</option><option>Paid</option><option>Failed</option><option>Refunded</option></select><select id="paymentMethodFilter"><option value="All">All Methods</option><option>COD</option><option>UPI</option><option>Card</option><option>Net Banking</option></select></div>
+          <div class="admin-toolbar"><input id="paymentSearch" type="search" placeholder="Search order, customer or phone…"><select id="paymentStatusFilter"><option value="All">All Payment Status</option><option>Pending</option><option>Partially Paid</option><option>Paid</option><option>Failed</option><option>Refunded</option></select><select id="paymentMethodFilter"><option value="All">All Methods</option><option>UPI</option><option>COD</option><option>UPI Advance + COD</option></select></div>
           <div id="paymentsMessage" class="admin-message"></div>
           <div class="payment-summary" id="paymentSummary"></div>
           <div class="table-wrap"><table class="admin-table"><thead><tr><th>ORDER</th><th>CUSTOMER</th><th>METHOD</th><th>STATUS</th><th>AMOUNT</th><th>DATE</th></tr></thead><tbody id="paymentsTableBody"></tbody></table></div>
@@ -189,6 +189,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=20261007-8"></script>
+  <script src="admin.js?v=20261007-9"></script>
 </body>
 </html>
