@@ -166,3 +166,47 @@ values
   ('Kurtas','kurtas'),
   ('Bottomwear','bottomwear')
 on conflict (slug) do nothing;
+
+
+-- Admin allow-list for Supabase Auth users.
+create table if not exists public.admin_users (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+alter table public.admin_users enable row level security;
+drop policy if exists "Admins can read own allow-list entry" on public.admin_users;
+create policy "Admins can read own allow-list entry" on public.admin_users for select to authenticated
+using (lower(email)=lower(coalesce(auth.jwt()->>'email','')));
+
+-- Admin CRUD policies.
+drop policy if exists "Admins can manage categories" on public.categories;
+create policy "Admins can manage categories" on public.categories for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+drop policy if exists "Admins can manage products" on public.products;
+create policy "Admins can manage products" on public.products for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+drop policy if exists "Admins can manage product images" on public.product_images;
+create policy "Admins can manage product images" on public.product_images for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+drop policy if exists "Admins can manage inventory" on public.inventory;
+create policy "Admins can manage inventory" on public.inventory for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+drop policy if exists "Admins can manage customers" on public.customers;
+create policy "Admins can manage customers" on public.customers for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+drop policy if exists "Admins can manage orders" on public.orders;
+create policy "Admins can manage orders" on public.orders for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+drop policy if exists "Admins can manage order items" on public.order_items;
+create policy "Admins can manage order items" on public.order_items for all to authenticated
+using (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))))
+with check (exists(select 1 from public.admin_users a where lower(a.email)=lower(coalesce(auth.jwt()->>'email',''))));
+
+-- After creating the first admin user in Supabase Auth, add their exact email:
+-- insert into public.admin_users(email) values ('YOUR_ADMIN_EMAIL');
