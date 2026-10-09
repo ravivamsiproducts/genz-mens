@@ -31,6 +31,24 @@ function getRazorpayCredentials() {
   return { keyId, keySecret };
 }
 
+function normalizeItems(items: any[]) {
+  return items.map((item: any) => ({
+    product_id: String(item.product_id || ""),
+    size: String(item.size || "").trim(),
+    quantity: Math.max(1, Math.min(9, Number(item.quantity || 1)))
+  })).sort((a: any, b: any) =>
+    a.product_id.localeCompare(b.product_id) ||
+    a.size.localeCompare(b.size) ||
+    a.quantity - b.quantity
+  );
+}
+
+async function hashCart(items: any[]) {
+  const canonical = JSON.stringify(normalizeItems(items));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function cartAmount(products: any[], inventoryRows: any[], items: any[], mode: string, requestedAdvance: number) {
   const priceMap = Object.fromEntries(products.map(p => [p.id, Number(p.price || 0)]));
   const stockMap: Record<string, number> = {};
@@ -93,6 +111,7 @@ Deno.serve(async (req) => {
     if (ie) throw ie;
 
     const breakdown = cartAmount(products || [], inventory || [], items, mode, partialAdvance);
+    const cartHash = await hashCart(items);
     const razorpayOrder = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -107,7 +126,8 @@ Deno.serve(async (req) => {
           brand: "GenZ Men's",
           payment_mode: mode,
           order_value: breakdown.orderValue.toFixed(2),
-          amount_due: breakdown.due.toFixed(2)
+          amount_due: breakdown.due.toFixed(2),
+          cart_hash: cartHash
         }
       })
     });
