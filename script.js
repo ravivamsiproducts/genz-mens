@@ -659,9 +659,9 @@ async function continuePayment(){
       prefill:{
         name:pendingCheckout.customer_name,
         email:pendingCheckout.customer_email,
-        contact:pendingCheckout.customer_phone
+        contact:pendingCheckout.customer_phone,
+        method:"upi"
       },
-      method:"upi",
       notes:{payment_mode:selectedPayment},
       theme:{color:"#1264e8",hide_topbar:true},
       modal:{
