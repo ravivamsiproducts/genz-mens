@@ -660,8 +660,9 @@ async function continuePayment(){
         email:pendingCheckout.customer_email,
         contact:pendingCheckout.customer_phone
       },
+      method:"upi",
       notes:{payment_mode:selectedPayment},
-      theme:{color:"#1264e8"},
+      theme:{color:"#1264e8",hide_topbar:true},
       modal:{
         ondismiss:function(){
           if(!verificationStarted&&!orderSaved){
