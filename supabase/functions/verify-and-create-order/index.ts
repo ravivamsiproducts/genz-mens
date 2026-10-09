@@ -43,6 +43,24 @@ async function hmacSha256Hex(secret: string, message: string) {
   return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+function normalizeItems(items: any[]) {
+  return items.map((item: any) => ({
+    product_id: String(item.product_id || ""),
+    size: String(item.size || "").trim(),
+    quantity: Math.max(1, Math.min(9, Number(item.quantity || 1)))
+  })).sort((a: any, b: any) =>
+    a.product_id.localeCompare(b.product_id) ||
+    a.size.localeCompare(b.size) ||
+    a.quantity - b.quantity
+  );
+}
+
+async function hashCart(items: any[]) {
+  const canonical = JSON.stringify(normalizeItems(items));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function cartAmount(products: any[], items: any[], mode: string, requestedAdvance: number) {
   const priceMap = Object.fromEntries(products.map(p => [p.id, Number(p.price || 0)]));
   let subtotal = 0;
@@ -86,8 +104,23 @@ Deno.serve(async (req) => {
     const expected = await hmacSha256Hex(keySecret, razorpayOrderId + "|" + razorpayPaymentId);
     if (expected !== razorpaySignature) return json({ error: "Invalid Razorpay payment signature." }, 400);
 
+    const normalizedItems = normalizeItems(items);
+    const cartHash = await hashCart(items);
+    const razorpayAuth = "Basic " + btoa(`${keyId}:${keySecret}`);
+
+    const orderRes = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(razorpayOrderId)}`, {
+      headers: { "Authorization": razorpayAuth }
+    });
+    const razorpayOrder = await orderRes.json();
+    if (!orderRes.ok) throw new Error(razorpayOrder?.error?.description || "Could not fetch Razorpay order.");
+    if (razorpayOrder.currency !== "INR") throw new Error("Unexpected order currency.");
+    if (Number(razorpayOrder.amount || 0) <= 0) throw new Error("Invalid Razorpay order amount.");
+    if (razorpayOrder.notes?.payment_mode !== mode || razorpayOrder.notes?.cart_hash !== cartHash) {
+      throw new Error("Payment order does not match the selected payment method or cart. Please restart checkout.");
+    }
+
     const paymentRes = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpayPaymentId)}`, {
-      headers: { "Authorization": "Basic " + btoa(`${keyId}:${keySecret}`) }
+      headers: { "Authorization": razorpayAuth }
     });
     const payment = await paymentRes.json();
     if (!paymentRes.ok) throw new Error(payment?.error?.description || "Could not fetch Razorpay payment.");
@@ -103,7 +136,8 @@ Deno.serve(async (req) => {
     if (pe) throw pe;
 
     const breakdown = cartAmount(products || [], items, mode, partialAdvance);
-    if (Number(payment.amount || 0) !== Math.round(breakdown.payNow * 100)) {
+    if (Number(payment.amount || 0) !== Math.round(breakdown.payNow * 100) ||
+        Number(razorpayOrder.amount || 0) !== Math.round(breakdown.payNow * 100)) {
       throw new Error("Payment amount does not match the order.");
     }
 
