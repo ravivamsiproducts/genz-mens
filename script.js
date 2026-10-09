@@ -601,47 +601,127 @@ function selectPayment(method,el){
   renderPayment();
 }
 
+async function invokePaymentFunction(functionName,body){
+  const {data,error}=await supabaseClient.functions.invoke(functionName,{body});
+  if(error){
+    let message=error.message||"Payment service request failed.";
+    try{
+      if(error.context&&typeof error.context.json==="function"){
+        const payload=await error.context.json();
+        message=payload?.error||payload?.message||message;
+      }
+    }catch(_){}
+    throw new Error(message);
+  }
+  if(data?.error)throw new Error(data.error);
+  if(!data)throw new Error("Payment service returned an empty response.");
+  return data;
+}
+
+function resetPaymentButton(button){
+  if(button){button.disabled=false;button.textContent=selectedPayment==="UPI"?"Pay Full Amount via UPI →":selectedPayment==="COD"?"Pay ₹100 Advance via UPI →":"Pay Advance via UPI →";}
+}
+
 async function continuePayment(){
   if(!pendingCheckout||!cart.length){alert("Your cart is empty.");return;}
-  const breakdown=paymentBreakdown();
-  if((selectedPayment==="UPI"||selectedPayment==="COD"||selectedPayment==="UPI Advance + COD")&&!GENZ_UPI_ID){
-    alert("UPI payment is not configured yet. Please add the GenZ Men's merchant UPI ID in script.js first.");
+  if(typeof window.Razorpay!=="function"){
+    alert("Razorpay Checkout could not load. Please refresh the page and try again.");
     return;
   }
+  const breakdown=paymentBreakdown();
   if(selectedPayment==="UPI Advance + COD"&&breakdown.upfront>=breakdown.subtotal){
     alert("For Partial Payment, the UPI advance must be less than the order value.");
     return;
   }
   const button=document.querySelector("#paymentModal .primary-btn.full");
-  if(button){button.disabled=true;button.textContent="Creating Order...";}
+  if(button){button.disabled=true;button.textContent="Creating secure payment…";}
+  const items=cart.map(item=>({product_id:item.id,size:item.size,quantity:item.qty||1}));
+  let verificationStarted=false;
+  let orderSaved=false;
   try{
-    const items=cart.map(item=>({product_id:item.id,size:item.size,quantity:item.qty||1}));
-    const result=await supabaseClient.rpc("create_store_order_v2",{
-      p_customer_name:pendingCheckout.customer_name,
-      p_customer_phone:pendingCheckout.customer_phone,
-      p_customer_email:pendingCheckout.customer_email,
-      p_address_line:pendingCheckout.address_line,
-      p_area_locality:pendingCheckout.area_locality,
-      p_pincode:pendingCheckout.pincode,
-      p_city:pendingCheckout.city,
-      p_state:pendingCheckout.state,
-      p_payment_method:selectedPayment,
-      p_upfront_amount:breakdown.upfront,
-      p_items:items
+    const created=await invokePaymentFunction("create-payment-order",{
+      mode:selectedPayment,
+      partial_advance:breakdown.upfront,
+      items
     });
-    if(result.error)throw result.error;
-    cart=[];saveCart();pendingCheckout=null;closePayment();renderCart();
-    const paidNow=Number(result.data.upfront_amount||breakdown.upfront);
-    const due=Number(result.data.amount_due||breakdown.due);
-    const total=Number(result.data.total||breakdown.total);
-    alert("Order created successfully!\nOrder Number: "+result.data.order_number+"\nUPI to pay now: ₹"+paidNow.toLocaleString("en-IN")+"\nAmount due on delivery: ₹"+due.toLocaleString("en-IN")+"\nOrder value: ₹"+total.toLocaleString("en-IN"));
-    setTimeout(()=>openUpiPayment(paidNow,result.data.order_number),250);
+    if(!created.key_id||!created.razorpay_order_id||!created.amount_paise){
+      throw new Error("Razorpay did not return the required order details.");
+    }
+
+    const options={
+      key:created.key_id,
+      amount:created.amount_paise,
+      currency:created.currency||"INR",
+      name:"GenZ Men's",
+      description:selectedPayment==="UPI"?"Full payment":selectedPayment==="COD"?"₹100 COD advance":"Partial UPI advance",
+      order_id:created.razorpay_order_id,
+      prefill:{
+        name:pendingCheckout.customer_name,
+        email:pendingCheckout.customer_email,
+        contact:pendingCheckout.customer_phone
+      },
+      notes:{payment_mode:selectedPayment},
+      theme:{color:"#1264e8"},
+      modal:{
+        ondismiss:function(){
+          if(!verificationStarted&&!orderSaved){
+            resetPaymentButton(button);
+            const status=document.getElementById("paymentStatus");
+            if(status)status.textContent="Payment window closed. No order was created.";
+          }
+        }
+      },
+      handler:async function(response){
+        verificationStarted=true;
+        if(button){button.disabled=true;button.textContent="Verifying payment…";}
+        try{
+          const verified=await invokePaymentFunction("verify-and-create-order",{
+            mode:selectedPayment,
+            partial_advance:breakdown.upfront,
+            items,
+            razorpay_order_id:response.razorpay_order_id,
+            razorpay_payment_id:response.razorpay_payment_id,
+            razorpay_signature:response.razorpay_signature,
+            checkout:pendingCheckout
+          });
+          if(!verified.order_number)throw new Error("Payment was received but the order confirmation number was not returned.");
+          orderSaved=true;
+          cart=[];
+          saveCart();
+          pendingCheckout=null;
+          closePayment();
+          renderCart();
+          const paidNow=Number(verified.upfront_amount??created.upfront_amount??breakdown.upfront);
+          const due=Number(verified.amount_due??created.amount_due??breakdown.due);
+          const total=Number(verified.total??created.total??breakdown.total);
+          alert("Payment verified and order confirmed!\nOrder Number: "+verified.order_number+"\nPaid via UPI: ₹"+paidNow.toLocaleString("en-IN")+"\nAmount due on delivery: ₹"+due.toLocaleString("en-IN")+"\nOrder value: ₹"+total.toLocaleString("en-IN"));
+        }catch(error){
+          console.error("Payment verification/order creation failed:",error);
+          const detail=error?.message||"Unknown verification error";
+          alert("Razorpay returned a payment response, but we could not confirm the order. Do not pay again yet.\nPayment ID: "+(response.razorpay_payment_id||"not returned")+"\nReason: "+detail+"\nPlease contact customer support with this Payment ID.");
+          const status=document.getElementById("paymentStatus");
+          if(status)status.textContent="Payment verification needs attention. Please do not repeat payment until the status is checked.";
+        }finally{
+          resetPaymentButton(button);
+        }
+      }
+    };
+
+    const checkout=new window.Razorpay(options);
+    checkout.on("payment.failed",function(response){
+      const detail=response?.error?.description||response?.error?.reason||"Please try again.";
+      console.error("Razorpay payment failed:",response?.error||response);
+      alert("Payment failed: "+detail);
+      const status=document.getElementById("paymentStatus");
+      if(status)status.textContent="Payment failed. You can try again.";
+      resetPaymentButton(button);
+    });
+    if(button){button.disabled=true;button.textContent="Opening secure checkout…";}
+    checkout.open();
   }catch(error){
-    console.error("Order creation failed:",error);
-    const detail=error?.message||error?.details||error?.hint||"Unknown error";
-    alert("Order could not be saved.\n\nReason: "+detail);
-  }finally{
-    if(button){button.disabled=false;button.textContent="Continue →";}
+    console.error("Razorpay checkout initialization failed:",error);
+    alert("Could not start Razorpay checkout.\n\nReason: "+(error?.message||"Unknown error"));
+    resetPaymentButton(button);
   }
 }
 
