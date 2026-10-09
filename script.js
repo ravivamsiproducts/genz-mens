@@ -637,6 +637,7 @@ async function continuePayment(){
   if(button){button.disabled=true;button.textContent="Creating secure payment…";}
   const items=cart.map(item=>({product_id:item.id,size:item.size,quantity:item.qty||1}));
   let verificationStarted=false;
+  let paymentFailed=false;
   let orderSaved=false;
   try{
     const created=await invokePaymentFunction("create-payment-order",{
@@ -653,7 +654,7 @@ async function continuePayment(){
       amount:created.amount_paise,
       currency:created.currency||"INR",
       name:"GenZ Men's",
-      description:selectedPayment==="UPI"?"Full payment":selectedPayment==="COD"?"₹100 COD advance":"Partial UPI advance",
+      description:selectedPayment==="UPI"?"Full payment":selectedPayment==="COD"?"COD - ₹100 advance":"Partial UPI advance",
       order_id:created.razorpay_order_id,
       prefill:{
         name:pendingCheckout.customer_name,
@@ -665,7 +666,7 @@ async function continuePayment(){
       theme:{color:"#1264e8",hide_topbar:true},
       modal:{
         ondismiss:function(){
-          if(!verificationStarted&&!orderSaved){
+          if(!verificationStarted&&!paymentFailed&&!orderSaved){
             resetPaymentButton(button);
             const status=document.getElementById("paymentStatus");
             if(status)status.textContent="Payment window closed. No order was created.";
@@ -710,6 +711,7 @@ async function continuePayment(){
 
     const checkout=new window.Razorpay(options);
     checkout.on("payment.failed",function(response){
+      paymentFailed=true;
       const detail=response?.error?.description||response?.error?.reason||"Please try again.";
       console.error("Razorpay payment failed:",response?.error||response);
       alert("Payment failed: "+detail);
