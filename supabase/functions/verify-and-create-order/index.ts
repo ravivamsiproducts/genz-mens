@@ -171,15 +171,28 @@ Deno.serve(async (req) => {
     });
 
     if (orderError) {
-      // The customer has already paid. Attempt a full refund if stock/order creation fails.
-      await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpayPaymentId)}/refund`, {
+      // Idempotency/race recovery: if another request already created the order for
+      // this captured payment, return that order and do not refund it.
+      const { data: racedOrder } = await supabase
+        .from("orders")
+        .select("order_id:id,order_number,subtotal,delivery_charge,total,upfront_amount,amount_due,payment_status")
+        .eq("gateway_payment_id", razorpayPaymentId)
+        .maybeSingle();
+      if (racedOrder) return json(racedOrder);
+
+      // Payment was captured but no order was committed (for example, stock changed).
+      // Attempt a full refund; the dashboard/webhook can be used to confirm the refund status.
+      const refundRes = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpayPaymentId)}/refund`, {
         method: "POST",
         headers: {
           "Authorization": "Basic " + btoa(`${keyId}:${keySecret}`),
           "Content-Type": "application/json"
         },
         body: JSON.stringify({})
-      }).catch(() => null);
+      });
+      if (!refundRes.ok) {
+        console.error("Automatic refund request failed for payment", razorpayPaymentId, await refundRes.text());
+      }
       throw orderError;
     }
 
