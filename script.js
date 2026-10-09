@@ -515,7 +515,6 @@ function placeOrder(event){
   document.getElementById("paymentModal").classList.add("show");
 }
 
-const GENZ_UPI_ID="ravivamsi@ybl"; // GenZ Men merchant UPI ID
 const COD_UPI_ADVANCE=100;
 let selectedPayment="UPI";
 let pendingCheckout=null;
@@ -540,25 +539,6 @@ function paymentBreakdown(){
     return {subtotal,delivery:0,upfront:advance,due:Math.max(0,subtotal-advance),total:subtotal};
   }
   return {subtotal,delivery:0,upfront:subtotal,due:0,total:subtotal};
-}
-
-function upiPaymentUrl(amount,orderNumber){
-  if(!GENZ_UPI_ID)return "";
-  const params=new URLSearchParams({
-    pa:GENZ_UPI_ID,pn:"GenZ Men's",am:Number(amount).toFixed(2),cu:"INR",
-    tn:"GenZ Men's "+orderNumber
-  });
-  return "upi://pay?"+params.toString();
-}
-
-function openUpiPayment(amount,orderNumber){
-  const url=upiPaymentUrl(amount,orderNumber);
-  if(!url){
-    alert("UPI payment is not configured yet. Add the GenZ Men's merchant UPI ID in script.js before accepting online/advance payments.");
-    return false;
-  }
-  window.location.href=url;
-  return true;
 }
 
 function renderPayment(){
