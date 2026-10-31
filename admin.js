@@ -165,7 +165,8 @@ async function loadAdminInventory(){
   if(pe||ie){const error=pe||ie;body.innerHTML='<tr><td colspan="9"><div class="empty"><strong>Could not load inventory</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("inventoryMessage",error.message,"error");return;}
   const catMap={};adminCategories.forEach(c=>catMap[c.id]=c.name);
   const stockMap={};(stock||[]).forEach(x=>(stockMap[x.product_id]??={})[x.size]=Number(x.stock_qty||0));
-  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};return {...p,category:catMap[p.category_id]||"Uncategorized",stock:s,total:["S","M","L","XL","XXL","One Size"].reduce((a,k)=>a+(s[k]||0),0)};});
+  const typeMap={};adminCategories.forEach(c=>typeMap[c.id]=c.category_type||"general");
+  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};const type=typeMap[p.category_id]||"general";const keys=type==="apparel"?["S","M","L","XL","XXL"]:["One Size"];return {...p,category:catMap[p.category_id]||"Uncategorized",category_type:type,stock:s,total:keys.reduce((a,k)=>a+(s[k]||0),0)};});
   renderAdminInventory();
   setSectionMessage("inventoryMessage",adminInventory.length+" product inventory record(s) loaded.","success");
 }
@@ -175,8 +176,9 @@ function renderAdminInventory(){
   const filter=document.getElementById("inventoryStockFilter")?.value||"All";
   const list=adminInventory.filter(p=>{
     const matchesQ=!q||p.name.toLowerCase().includes(q);
-    const vals=["S","M","L","XL","XXL","One Size"].map(k=>p.stock[k]??0);
-    const matches=filter==="All"||filter==="Low" ? (filter==="Low" ? vals.some(v=>v>0&&v<=5) : true) : filter==="Out" ? vals.some(v=>v===0) : vals.every(v=>v>=6);
+    const keys=p.category_type==="apparel"?["S","M","L","XL","XXL"]:["One Size"];
+    const vals=keys.map(k=>p.stock[k]??0);
+    const matches=filter==="All" ? true : filter==="Low" ? vals.some(v=>v>0&&v<=5) : filter==="Out" ? vals.every(v=>v===0) : vals.every(v=>v>=6);
     return matchesQ&&matches;
   });
   if(!list.length){body.innerHTML='<tr><td colspan="9"><div class="empty"><strong>No inventory matches</strong><span>Try another search or stock filter.</span></div></td></tr>';return;}
