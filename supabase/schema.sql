@@ -8,6 +8,7 @@ create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   slug text not null unique,
+  category_type text not null default 'general' check (category_type in ('apparel','general')),
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -161,13 +162,20 @@ using (
 -- Admin access will be implemented with Supabase Auth + an admin allow-list.
 
 -- Seed the current demo categories.
-insert into public.categories (name, slug)
+insert into public.categories (name, slug, category_type)
 values
-  ('Shirts','shirts'),
-  ('T-Shirts','t-shirts'),
-  ('Kurtas','kurtas'),
-  ('Bottomwear','bottomwear')
-on conflict (slug) do nothing;
+  ('Shirts','shirts','apparel'),
+  ('T-Shirts','t-shirts','apparel'),
+  ('Kurtas','kurtas','apparel'),
+  ('Bottomwear','bottomwear','apparel'),
+  ('Footwear','footwear','general'),
+  ('Accessories','accessories','general'),
+  ('Men''s Grooming','mens-grooming','general'),
+  ('Perfumes & Fragrances','perfumes-fragrances','general'),
+  ('Hair Care','hair-care','general'),
+  ('Skin Care','skin-care','general'),
+  ('Gift Sets','gift-sets','general')
+on conflict (slug) do update set category_type=excluded.category_type;
 
 
 -- Admin allow-list for Supabase Auth users.
