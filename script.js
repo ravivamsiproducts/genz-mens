@@ -734,7 +734,7 @@ async function loadStoreProducts(){
     storeCategories.forEach(x=>cm[x.id]=x.name);
     (ir.data||[]).forEach(x=>(im[x.product_id]??=[]).push(x.image_url));
     (sr.data||[]).forEach(x=>{(sm[x.product_id]??={})[x.size]=Number(x.stock_qty||0);});
-    products=(r.data||[]).map(p=>({id:p.id,name:p.name,category:cm[p.category_id]||"Uncategorized",category_type:storeCategories.find(c=>c.id===p.category_id)?.category_type||"general",price:Number(p.price||0),compare_at_price:p.compare_at_price,badge:p.badge||"",description:p.description||"",sizes:p.sizes?.length?p.sizes:((storeCategories.find(c=>c.id===p.category_id)?.category_type||"general")==="apparel"?["S","M","L","XL","XXL"]:["One Size"]),images:im[p.id]||[],inventory:sm[p.id]||{}}));
+    products=(r.data||[]).filter(p=>Boolean(cm[p.category_id])).map(p=>({id:p.id,name:p.name,category:cm[p.category_id],category_type:storeCategories.find(c=>c.id===p.category_id)?.category_type||"general",price:Number(p.price||0),compare_at_price:p.compare_at_price,badge:p.badge||"",description:p.description||"",sizes:p.sizes?.length?p.sizes:((storeCategories.find(c=>c.id===p.category_id)?.category_type||"general")==="apparel"?["S","M","L","XL","XXL"]:["One Size"]),images:im[p.id]||[],inventory:sm[p.id]||{}}));
     cart=cart.filter(item=>products.some(p=>String(p.id)===String(item.id)));
     saveCart();
     renderProducts();
