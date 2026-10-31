@@ -162,10 +162,10 @@ async function loadAdminInventory(){
     supabaseClient.from("products").select("id,name,category_id,is_active").order("name"),
     supabaseClient.from("inventory").select("product_id,size,stock_qty")
   ]);
-  if(pe||ie){const error=pe||ie;body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>Could not load inventory</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("inventoryMessage",error.message,"error");return;}
+  if(pe||ie){const error=pe||ie;body.innerHTML='<tr><td colspan="9"><div class="empty"><strong>Could not load inventory</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("inventoryMessage",error.message,"error");return;}
   const catMap={};adminCategories.forEach(c=>catMap[c.id]=c.name);
   const stockMap={};(stock||[]).forEach(x=>(stockMap[x.product_id]??={})[x.size]=Number(x.stock_qty||0));
-  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};return {...p,category:catMap[p.category_id]||"Uncategorized",stock:s,total:["S","M","L","XL","XXL"].reduce((a,k)=>a+(s[k]||0),0)};});
+  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};return {...p,category:catMap[p.category_id]||"Uncategorized",stock:s,total:["S","M","L","XL","XXL","One Size"].reduce((a,k)=>a+(s[k]||0),0)};});
   renderAdminInventory();
   setSectionMessage("inventoryMessage",adminInventory.length+" product inventory record(s) loaded.","success");
 }
@@ -175,14 +175,14 @@ function renderAdminInventory(){
   const filter=document.getElementById("inventoryStockFilter")?.value||"All";
   const list=adminInventory.filter(p=>{
     const matchesQ=!q||p.name.toLowerCase().includes(q);
-    const vals=["S","M","L","XL","XXL"].map(k=>p.stock[k]??0);
+    const vals=["S","M","L","XL","XXL","One Size"].map(k=>p.stock[k]??0);
     const matches=filter==="All"||filter==="Low" ? (filter==="Low" ? vals.some(v=>v>0&&v<=5) : true) : filter==="Out" ? vals.some(v=>v===0) : vals.every(v=>v>=6);
     return matchesQ&&matches;
   });
-  if(!list.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>No inventory matches</strong><span>Try another search or stock filter.</span></div></td></tr>';return;}
+  if(!list.length){body.innerHTML='<tr><td colspan="9"><div class="empty"><strong>No inventory matches</strong><span>Try another search or stock filter.</span></div></td></tr>';return;}
   body.innerHTML=list.map(p=>{
     const cell=k=>{const n=Number(p.stock[k]??0);return '<span class="stock-number '+(n===0?"stock-out":n<=5?"stock-low":"stock-ok")+'">'+n+'</span>';};
-    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(p.name)+'</strong><small>'+(!p.is_active?"Inactive":"Active")+'</small></div></td><td>'+escapeHtml(p.category)+'</td><td>'+cell("S")+'</td><td>'+cell("M")+'</td><td>'+cell("L")+'</td><td>'+cell("XL")+'</td><td>'+cell("XXL")+'</td><td><strong>'+p.total+'</strong></td></tr>';
+    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(p.name)+'</strong><small>'+(!p.is_active?"Inactive":"Active")+'</small></div></td><td>'+escapeHtml(p.category)+'</td><td>'+cell("S")+'</td><td>'+cell("M")+'</td><td>'+cell("L")+'</td><td>'+cell("XL")+'</td><td>'+cell("XXL")+'</td><td>'+cell("One Size")+'</td><td><strong>'+p.total+'</strong></td></tr>';
   }).join("");
 }
 
