@@ -12,6 +12,7 @@ let products = [
 ];
 
 let category="All";
+let storeCategories=[];
 
 let cart=[];
 try{
@@ -720,24 +721,40 @@ async function loadStoreProducts(){
   try{
     const r=await supabaseClient.from("products").select("id,name,slug,description,price,compare_at_price,badge,sizes,category_id,is_active").eq("is_active",true).order("created_at",{ascending:false});
     if(r.error)throw r.error;
-    if(!r.data?.length)return;
-    const ids=r.data.map(p=>p.id);
+    const ids=(r.data||[]).map(p=>p.id);
     const [cr,ir,sr]=await Promise.all([
-      supabaseClient.from("categories").select("id,name"),
-      supabaseClient.from("product_images").select("product_id,image_url,sort_order,is_primary").in("product_id",ids).order("sort_order"),
-      supabaseClient.from("inventory").select("product_id,size,stock_qty").in("product_id",ids)
+      supabaseClient.from("categories").select("id,name,slug,category_type,is_active").eq("is_active",true).order("name"),
+      ids.length ? supabaseClient.from("product_images").select("product_id,image_url,sort_order,is_primary").in("product_id",ids).order("sort_order") : Promise.resolve({data:[],error:null}),
+      ids.length ? supabaseClient.from("inventory").select("product_id,size,stock_qty").in("product_id",ids) : Promise.resolve({data:[],error:null})
     ]);
     if(cr.error)throw cr.error;
+    storeCategories=cr.data||[];
+    renderCategoryFilters(storeCategories);
     const cm={},im={},sm={};
-    (cr.data||[]).forEach(x=>cm[x.id]=x.name);
+    storeCategories.forEach(x=>cm[x.id]=x.name);
     (ir.data||[]).forEach(x=>(im[x.product_id]??=[]).push(x.image_url));
     (sr.data||[]).forEach(x=>{(sm[x.product_id]??={})[x.size]=Number(x.stock_qty||0);});
-    products=r.data.map(p=>({id:p.id,name:p.name,category:cm[p.category_id]||"Uncategorized",price:Number(p.price||0),compare_at_price:p.compare_at_price,badge:p.badge||"",description:p.description||"",sizes:p.sizes||["S","M","L","XL","XXL"],images:im[p.id]||[],inventory:sm[p.id]||{}}));
+    products=(r.data||[]).filter(p=>Boolean(cm[p.category_id])).map(p=>({id:p.id,name:p.name,category:cm[p.category_id],category_type:storeCategories.find(c=>c.id===p.category_id)?.category_type||"general",price:Number(p.price||0),compare_at_price:p.compare_at_price,badge:p.badge||"",description:p.description||"",sizes:p.sizes?.length?p.sizes:((storeCategories.find(c=>c.id===p.category_id)?.category_type||"general")==="apparel"?["S","M","L","XL","XXL"]:["One Size"]),images:im[p.id]||[],inventory:sm[p.id]||{}}));
     cart=cart.filter(item=>products.some(p=>String(p.id)===String(item.id)));
     saveCart();
     renderProducts();
     console.log("Live catalog loaded:",products.length);
   }catch(e){console.error("Live catalog load failed:",e);}
+}
+function renderCategoryFilters(categories){
+  const box=document.getElementById("categoryFilters");if(!box)return;
+  box.replaceChildren();
+  const items=[{name:"All"},...(categories||[]).map(c=>({name:c.name}))];
+  items.forEach((item,index)=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="filter"+(index===0?" active":"");
+    button.textContent=item.name;
+    button.dataset.category=item.name;
+    button.addEventListener("click",()=>setCategory(item.name,button));
+    box.appendChild(button);
+  });
+  category="All";
 }
 
 function img(p,v){
@@ -746,13 +763,20 @@ function img(p,v){
   return typeof p?.id==="number"?"Images/Product"+String(p.id).padStart(2,"0")+"/view"+v+".jpg":"";
 }
 
+function setCategory(value,button){
+  category=value;
+  document.querySelectorAll("#categoryFilters .filter").forEach(el=>el.classList.toggle("active",el===button));
+  renderProducts();
+}
 function renderProducts(){
-  const q=document.getElementById("search").value.toLowerCase();
+  const q=(document.getElementById("search")?.value||"").toLowerCase();
   const list=products.filter(p=>
     (category==="All"||p.category===category) &&
     p.name.toLowerCase().includes(q)
   );
-  document.getElementById("products").innerHTML=list.map(p=>{
+  const container=document.getElementById("products");
+  if(!list.length){container.innerHTML='<div class="empty-state">No products found in this category yet.</div>';return;}
+  container.innerHTML=list.map(p=>{
     const id=String(p.id);
     const old=p.compare_at_price && Number(p.compare_at_price)>Number(p.price)
       ? `<span class="old">₹${Number(p.compare_at_price).toLocaleString("en-IN")}</span>` : "";
@@ -785,7 +809,21 @@ function openProduct(id){
   const list=current.images?.length?current.images:[1,2,3,4,5].map(v=>img(current,v));
   document.getElementById("mainImage").src=list[0];
   document.getElementById("thumbs").innerHTML=list.slice(0,5).map((url,i)=>"<img class=\""+(i===0?"active":"")+"\" src=\""+url+"\" alt=\"View "+(i+1)+"\" onclick=\"showView("+(i+1)+")\" onerror=\"this.style.display=\\\x27none\\\x27\">").join("");
-  document.querySelectorAll("#sizes button").forEach(b=>{const size=b.textContent;b.style.display=sizes.includes(size)?"":"none";b.classList.toggle("selected",size===selectedSize);b.disabled=sizes.includes(size)&&Number(current.inventory?.[size]??0)<=0;b.onclick=()=>{if(b.disabled)return;selectedSize=size;document.querySelectorAll("#sizes button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");updateAddButtonState();};});
+  const sizesBox=document.getElementById("sizes");
+  sizesBox.innerHTML=sizes.map(size=>'<button type="button" data-size="'+String(size).replace(/"/g,"&quot;")+'">'+String(size).replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</button>').join("");
+  sizesBox.querySelectorAll("button").forEach(b=>{
+    const size=b.dataset.size;
+    b.classList.toggle("selected",size===selectedSize);
+    b.disabled=Number(current.inventory?.[size]??0)<=0 && Object.keys(current.inventory||{}).length>0;
+    b.addEventListener("click",()=>{
+      if(b.disabled)return;
+      selectedSize=size;
+      sizesBox.querySelectorAll("button").forEach(x=>x.classList.toggle("selected",x===b));
+      updateAddButtonState();
+    });
+  });
+  const apparel=(current.category_type||"general")==="apparel";
+  document.getElementById("sizeHeading").style.display=apparel?"flex":"none";
   updateAddButtonState();setupSlider();document.getElementById("productModal").classList.add("show");
 }
 function updateAddButtonState(){const b=document.querySelector("#productModal .primary-btn.full");if(!b||!current)return;const known=Object.keys(current.inventory||{}).length>0;const stock=Number(current.inventory?.[selectedSize]??0);b.textContent=known&&stock<=0?"Out of Stock":"Add to Cart";b.disabled=known&&stock<=0;}

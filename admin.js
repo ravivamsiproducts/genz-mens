@@ -24,7 +24,7 @@ function showAdmin(){
   connectionStatus.textContent="Connected";
   connectionStatus.style.color="#69e39a";
   document.getElementById("pageTitle").textContent="Dashboard";
-  setTimeout(loadAllAdminData,0);
+  setTimeout(()=>{loadAllAdminData();initProductAdmin();},0);
 }
 
 async function isAdminEmail(email){
@@ -162,10 +162,11 @@ async function loadAdminInventory(){
     supabaseClient.from("products").select("id,name,category_id,is_active").order("name"),
     supabaseClient.from("inventory").select("product_id,size,stock_qty")
   ]);
-  if(pe||ie){const error=pe||ie;body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>Could not load inventory</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("inventoryMessage",error.message,"error");return;}
+  if(pe||ie){const error=pe||ie;body.innerHTML='<tr><td colspan="9"><div class="empty"><strong>Could not load inventory</strong><span>'+escapeHtml(error.message)+'</span></div></td></tr>';setSectionMessage("inventoryMessage",error.message,"error");return;}
   const catMap={};adminCategories.forEach(c=>catMap[c.id]=c.name);
   const stockMap={};(stock||[]).forEach(x=>(stockMap[x.product_id]??={})[x.size]=Number(x.stock_qty||0));
-  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};return {...p,category:catMap[p.category_id]||"Uncategorized",stock:s,total:["S","M","L","XL","XXL"].reduce((a,k)=>a+(s[k]||0),0)};});
+  const typeMap={};adminCategories.forEach(c=>typeMap[c.id]=c.category_type||"general");
+  adminInventory=(productsData||[]).map(p=>{const s=stockMap[p.id]||{};const type=typeMap[p.category_id]||"general";const keys=type==="apparel"?["S","M","L","XL","XXL"]:["One Size"];return {...p,category:catMap[p.category_id]||"Uncategorized",category_type:type,stock:s,total:keys.reduce((a,k)=>a+(s[k]||0),0)};});
   renderAdminInventory();
   setSectionMessage("inventoryMessage",adminInventory.length+" product inventory record(s) loaded.","success");
 }
@@ -175,14 +176,15 @@ function renderAdminInventory(){
   const filter=document.getElementById("inventoryStockFilter")?.value||"All";
   const list=adminInventory.filter(p=>{
     const matchesQ=!q||p.name.toLowerCase().includes(q);
-    const vals=["S","M","L","XL","XXL"].map(k=>p.stock[k]??0);
-    const matches=filter==="All"||filter==="Low" ? (filter==="Low" ? vals.some(v=>v>0&&v<=5) : true) : filter==="Out" ? vals.some(v=>v===0) : vals.every(v=>v>=6);
+    const keys=p.category_type==="apparel"?["S","M","L","XL","XXL"]:["One Size"];
+    const vals=keys.map(k=>p.stock[k]??0);
+    const matches=filter==="All" ? true : filter==="Low" ? vals.some(v=>v>0&&v<=5) : filter==="Out" ? vals.every(v=>v===0) : vals.every(v=>v>=6);
     return matchesQ&&matches;
   });
-  if(!list.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><strong>No inventory matches</strong><span>Try another search or stock filter.</span></div></td></tr>';return;}
+  if(!list.length){body.innerHTML='<tr><td colspan="9"><div class="empty"><strong>No inventory matches</strong><span>Try another search or stock filter.</span></div></td></tr>';return;}
   body.innerHTML=list.map(p=>{
     const cell=k=>{const n=Number(p.stock[k]??0);return '<span class="stock-number '+(n===0?"stock-out":n<=5?"stock-low":"stock-ok")+'">'+n+'</span>';};
-    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(p.name)+'</strong><small>'+(!p.is_active?"Inactive":"Active")+'</small></div></td><td>'+escapeHtml(p.category)+'</td><td>'+cell("S")+'</td><td>'+cell("M")+'</td><td>'+cell("L")+'</td><td>'+cell("XL")+'</td><td>'+cell("XXL")+'</td><td><strong>'+p.total+'</strong></td></tr>';
+    return '<tr><td><div class="product-cell"><strong>'+escapeHtml(p.name)+'</strong><small>'+(!p.is_active?"Inactive":"Active")+'</small></div></td><td>'+escapeHtml(p.category)+'</td><td>'+cell("S")+'</td><td>'+cell("M")+'</td><td>'+cell("L")+'</td><td>'+cell("XL")+'</td><td>'+cell("XXL")+'</td><td>'+cell("One Size")+'</td><td><strong>'+p.total+'</strong></td></tr>';
   }).join("");
 }
 
@@ -368,11 +370,91 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m];});
 }
 async function loadCategories(){
-  const {data,error}=await supabaseClient.from("categories").select("id,name,slug,is_active").order("name");
+  const {data,error}=await supabaseClient.from("categories").select("id,name,slug,is_active,category_type").order("name");
   if(error){setAdminMessage("Could not load categories: "+error.message,"error");return;}
   adminCategories=data||[];
   document.getElementById("productCategoryFilter").innerHTML='<option value="All">All Categories</option>'+adminCategories.map(function(c){return '<option value="'+c.id+'">'+escapeHtml(c.name)+'</option>';}).join("");
-  document.getElementById("productCategory").innerHTML=adminCategories.map(function(c){return '<option value="'+c.id+'">'+escapeHtml(c.name)+'</option>';}).join("");
+  document.getElementById("productCategory").innerHTML=adminCategories.filter(c=>c.is_active!==false).map(function(c){return '<option value="'+c.id+'">'+escapeHtml(c.name)+'</option>';}).join("");
+  renderAdminCategories();
+  updateProductCategoryMode();
+}
+function setCategoryMessage(message,type=""){
+  const el=document.getElementById("categoryMessage");
+  if(el){el.textContent=message;el.style.color=type==="error"?"#c62828":type==="success"?"#21854a":"";}
+}
+function setCategoriesMessage(message,type=""){
+  const el=document.getElementById("categoriesMessage");
+  if(el){el.textContent=message;el.style.color=type==="error"?"#c62828":type==="success"?"#21854a":"";}
+}
+function renderAdminCategories(){
+  const body=document.getElementById("categoriesTableBody");
+  if(!body)return;
+  if(!adminCategories.length){body.innerHTML='<tr><td colspan="4">No categories yet. Add your first category above.</td></tr>';return;}
+  body.innerHTML=adminCategories.map(c=>'<tr><td><strong>'+escapeHtml(c.name)+'</strong><small>'+escapeHtml(c.slug)+'</small></td><td>'+((c.category_type||"general")==="apparel"?"Apparel":"General product")+'</td><td><span class="status-pill '+(c.is_active?"status-active":"status-inactive")+'">'+(c.is_active?"Active":"Hidden")+'</span></td><td><div class="action-group"><button class="table-btn" type="button" data-category-edit="'+c.id+'">Edit</button><button class="table-btn" type="button" data-category-toggle="'+c.id+'">'+(c.is_active?"Hide":"Show")+'</button></div></td></tr>').join("");
+  body.querySelectorAll("[data-category-edit]").forEach(b=>b.addEventListener("click",()=>editAdminCategory(b.dataset.categoryEdit)));
+  body.querySelectorAll("[data-category-toggle]").forEach(b=>b.addEventListener("click",()=>toggleAdminCategory(b.dataset.categoryToggle)));
+}
+async function refreshAdminCategories(){
+  setCategoriesMessage("Loading categories…");
+  await loadCategories();
+  setCategoriesMessage(adminCategories.length+" category/categories loaded.","success");
+}
+async function saveAdminCategory(event){
+  event.preventDefault();
+  const name=document.getElementById("categoryName").value.trim();
+  const categoryType=document.getElementById("categoryType").value;
+  const slug=slugify(name);
+  if(!name||!slug){setCategoryMessage("Enter a valid category name.","error");return;}
+  setCategoryMessage("Saving category…");
+  const {error}=await supabaseClient.from("categories").insert({name,slug,category_type:categoryType,is_active:true});
+  if(error){setCategoryMessage(error.message,"error");return;}
+  document.getElementById("categoryForm").reset();
+  document.getElementById("categoryType").value="general";
+  await loadCategories();
+  await loadAdminProducts();
+  setCategoryMessage("Category added. It will appear on the storefront when active products are available.","success");
+  setCategoriesMessage("Category list updated.","success");
+}
+async function editAdminCategory(id){
+  const c=adminCategories.find(x=>x.id===id);if(!c)return;
+  const name=prompt("Category name:",c.name);if(name===null)return;
+  const clean=name.trim();if(!clean){alert("Category name cannot be empty.");return;}
+  const type=prompt("Type: enter apparel for clothing sizes, or general for perfumes/grooming/skincare.",c.category_type||"general");
+  if(type===null)return;
+  const normalized=type.trim().toLowerCase();
+  if(!["apparel","general"].includes(normalized)){alert("Type must be apparel or general.");return;}
+  const {error}=await supabaseClient.from("categories").update({name:clean,slug:slugify(clean),category_type:normalized}).eq("id",id);
+  if(error){setCategoriesMessage(error.message,"error");return;}
+  await loadCategories();await loadAdminProducts();
+  setCategoriesMessage("Category updated.","success");
+}
+async function toggleAdminCategory(id){
+  const c=adminCategories.find(x=>x.id===id);if(!c)return;
+  const {error}=await supabaseClient.from("categories").update({is_active:!c.is_active}).eq("id",id);
+  if(error){setCategoriesMessage(error.message,"error");return;}
+  await loadCategories();await loadAdminProducts();
+  setCategoriesMessage(c.is_active?"Category hidden from the storefront.":"Category shown on the storefront.","success");
+}
+function updateProductCategoryMode(){
+  const select=document.getElementById("productCategory");
+  const category=adminCategories.find(c=>c.id===select?.value);
+  const apparel=(category?.category_type||"general")==="apparel";
+  const sizes=document.getElementById("productSizes");
+  const label=document.getElementById("productSizesLabel");
+  const inventory=document.getElementById("productInventorySection");
+  const heading=document.getElementById("inventoryHeading");
+  const hint=document.getElementById("inventoryHint");
+  if(!sizes||!inventory)return;
+  sizes.innerHTML=apparel
+    ? '<option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option>'
+    : '<option value="One Size">One Size</option>';
+  if(label)label.firstChild.textContent=apparel?"Sizes ":"Product Option ";
+  if(heading)heading.textContent=apparel?"Stock by Size":"Stock Quantity";
+  if(hint)hint.textContent=apparel?"Enter available quantity for each selected size":"Enter the total quantity available for this product";
+  inventory.querySelector(".subsection-title")?.classList.toggle("general-stock",!apparel);
+  Array.from(sizes.options).forEach(o=>o.selected=apparel?["S","M","L","XL","XXL"].includes(o.value):true);
+  const currentRows=Array.from(document.querySelectorAll("[data-stock-size]")).map(input=>({size:input.dataset.stockSize,stock_qty:Number(input.value||0)}));
+  renderInventoryInputs(Array.from(sizes.selectedOptions).map(o=>o.value),currentRows);
 }
 function categoryName(id){
   const c=adminCategories.find(function(x){return x.id===id;});
@@ -443,13 +525,16 @@ async function openProductEditor(product=null){
   document.getElementById("productModalTitle").textContent=product?"Edit Product":"Add Product";
   document.getElementById("productId").value=product?.id||"";
   document.getElementById("productName").value=product?.name||"";
-  document.getElementById("productCategory").value=product?.category_id||adminCategories[0]?.id||"";
+  document.getElementById("productCategory").value=product?.category_id||adminCategories.find(c=>c.is_active!==false)?.id||"";
+  updateProductCategoryMode();
   document.getElementById("productPrice").value=product?.price??"";
   document.getElementById("productComparePrice").value=product?.compare_at_price??"";
   document.getElementById("productBadge").value=product?.badge||"";
   document.getElementById("productDescription").value=product?.description||"";
   document.getElementById("productActive").checked=product?.is_active!==false;
-  const sizes=product?.sizes||["S","M","L","XL","XXL"];
+  const category=adminCategories.find(c=>c.id===(product?.category_id||document.getElementById("productCategory").value));
+  const defaultSizes=(category?.category_type||"general")==="apparel"?["S","M","L","XL","XXL"]:["One Size"];
+  const sizes=product?.sizes?.length?product.sizes:defaultSizes;
   Array.from(document.getElementById("productSizes").options).forEach(function(o){o.selected=sizes.includes(o.value);});
   document.getElementById("productImages").value="";
   renderProductImagePreview([]);
@@ -539,16 +624,18 @@ async function saveAdminProduct(event){
   const sizes=Array.from(document.getElementById("productSizes").selectedOptions).map(function(o){return o.value;});
   const isActive=document.getElementById("productActive").checked;
   const files=Array.from(document.getElementById("productImages").files||[]).slice(0,5);
-  if(!name||!categoryId||!Number.isFinite(price)||price<0||!sizes.length){setFormMessage("Please enter name, category, price and at least one size.","error");return;}
+  const category=adminCategories.find(c=>c.id===categoryId);
+  const productSizes=(category?.category_type||"general")==="apparel"?sizes:["One Size"];
+  if(!name||!categoryId||!Number.isFinite(price)||price<0||!productSizes.length){setFormMessage("Please enter name, category, price and valid product options.","error");return;}
   if(files.length>5){setFormMessage("You can upload a maximum of 5 images.","error");return;}
-  const base={name,slug:slugify(name),category_id:categoryId,description,price,compare_at_price:compareAt,badge,sizes,is_active:isActive};
+  const base={name,slug:slugify(name),category_id:categoryId,description,price,compare_at_price:compareAt,badge,sizes:productSizes,is_active:isActive};
   setFormMessage("Saving product…");
   const result=id?await supabaseClient.from("products").update(base).eq("id",id).select().single():await supabaseClient.from("products").insert(base).select().single();
   if(result.error){setFormMessage(result.error.message,"error");return;}
   const productId=result.data.id;
   try{
     if(files.length)await replaceProductImages(productId,files);
-    await saveInventory(productId,sizes);
+    await saveInventory(productId,productSizes);
   }catch(error){
     console.error(error);
     setFormMessage("Product saved, but images/stock could not be saved: "+error.message,"error");
@@ -587,4 +674,6 @@ document.getElementById("productSizes").addEventListener("change",function(){
 document.getElementById("refreshProductsBtn").addEventListener("click",initProductAdmin);
 document.getElementById("productSearch").addEventListener("input",renderAdminProducts);
 document.getElementById("productCategoryFilter").addEventListener("change",renderAdminProducts);
-initProductAdmin();
+document.getElementById("productCategory").addEventListener("change",updateProductCategoryMode);
+document.getElementById("categoryForm").addEventListener("submit",saveAdminCategory);
+document.getElementById("refreshCategoriesBtn").addEventListener("click",refreshAdminCategories);

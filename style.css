@@ -186,3 +186,5 @@ footer small{color:#8f99aa}
 .payment-method em{font-style:normal;font-size:9px;background:#e8f7ee;color:#21854a;border-radius:999px;padding:3px 6px;margin-left:5px;vertical-align:middle}
 .status-partial{background:#fff5d9;color:#a56a00}
 .payment-due-line{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+
+.empty-state{grid-column:1/-1;padding:28px 18px;text-align:center;border:1px dashed #cbd5e1;border-radius:14px;color:#64748b;background:#f8fafc}
