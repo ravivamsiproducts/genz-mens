@@ -24,7 +24,7 @@ function showAdmin(){
   connectionStatus.textContent="Connected";
   connectionStatus.style.color="#69e39a";
   document.getElementById("pageTitle").textContent="Dashboard";
-  setTimeout(loadAllAdminData,0);
+  setTimeout(()=>{loadAllAdminData();initProductAdmin();},0);
 }
 
 async function isAdminEmail(email){
@@ -675,4 +675,3 @@ document.getElementById("productCategoryFilter").addEventListener("change",rende
 document.getElementById("productCategory").addEventListener("change",updateProductCategoryMode);
 document.getElementById("categoryForm").addEventListener("submit",saveAdminCategory);
 document.getElementById("refreshCategoriesBtn").addEventListener("click",refreshAdminCategories);
-initProductAdmin();
