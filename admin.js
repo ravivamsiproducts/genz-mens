@@ -451,6 +451,8 @@ function updateProductCategoryMode(){
   if(hint)hint.textContent=apparel?"Enter available quantity for each selected size":"Enter the total quantity available for this product";
   inventory.querySelector(".subsection-title")?.classList.toggle("general-stock",!apparel);
   Array.from(sizes.options).forEach(o=>o.selected=apparel?["S","M","L","XL","XXL"].includes(o.value):true);
+  const currentRows=Array.from(document.querySelectorAll("[data-stock-size]")).map(input=>({size:input.dataset.stockSize,stock_qty:Number(input.value||0)}));
+  renderInventoryInputs(Array.from(sizes.selectedOptions).map(o=>o.value),currentRows);
 }
 function categoryName(id){
   const c=adminCategories.find(function(x){return x.id===id;});
@@ -631,7 +633,7 @@ async function saveAdminProduct(event){
   const productId=result.data.id;
   try{
     if(files.length)await replaceProductImages(productId,files);
-    await saveInventory(productId,sizes);
+    await saveInventory(productId,productSizes);
   }catch(error){
     console.error(error);
     setFormMessage("Product saved, but images/stock could not be saved: "+error.message,"error");
