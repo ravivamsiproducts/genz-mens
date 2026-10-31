@@ -724,9 +724,8 @@ async function loadStoreProducts(){
     const ids=(r.data||[]).map(p=>p.id);
     const [cr,ir,sr]=await Promise.all([
       supabaseClient.from("categories").select("id,name,slug,category_type,is_active").eq("is_active",true).order("name"),
-
-      supabaseClient.from("product_images").select("product_id,image_url,sort_order,is_primary").in("product_id",ids).order("sort_order"),
-      supabaseClient.from("inventory").select("product_id,size,stock_qty").in("product_id",ids)
+      ids.length ? supabaseClient.from("product_images").select("product_id,image_url,sort_order,is_primary").in("product_id",ids).order("sort_order") : Promise.resolve({data:[],error:null}),
+      ids.length ? supabaseClient.from("inventory").select("product_id,size,stock_qty").in("product_id",ids) : Promise.resolve({data:[],error:null})
     ]);
     if(cr.error)throw cr.error;
     storeCategories=cr.data||[];
