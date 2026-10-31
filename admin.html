@@ -27,6 +27,7 @@
       <nav>
         <button class="nav-item active" data-section="dashboard">📊 Dashboard</button>
         <button class="nav-item" data-section="products">📦 Products</button>
+        <button class="nav-item" data-section="categories">🗂️ Categories</button>
         <button class="nav-item" data-section="orders">🛒 Orders</button>
         <button class="nav-item" data-section="customers">👤 Customers</button>
         <button class="nav-item" data-section="inventory">📋 Inventory</button>
@@ -70,6 +71,26 @@
     </table>
   </div>
 </div>
+      </section>
+
+      <section class="section" id="categories">
+        <div class="section-bar"><div><h2>Categories</h2><p>Add and manage the departments shown on the customer storefront.</p></div><button class="secondary-btn" id="refreshCategoriesBtn" type="button">↻ Refresh</button></div>
+        <div class="panel">
+          <h3>Add a Category</h3>
+          <form id="categoryForm" class="product-form category-form">
+            <div class="form-grid">
+              <label>Category Name<input id="categoryName" required maxlength="60" placeholder="e.g. Perfumes & Fragrances"></label>
+              <label>Product Type<select id="categoryType" required><option value="apparel">Apparel (size selection)</option><option value="general" selected>General product (no clothing sizes)</option></select></label>
+            </div>
+            <p class="muted">Apparel categories use clothing sizes. General product categories use “One Size” and are suitable for perfumes, grooming and skincare.</p>
+            <div id="categoryMessage" class="admin-message"></div>
+            <div class="modal-actions"><button class="primary" type="submit">+ Add Category</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <div id="categoriesMessage" class="admin-message"></div>
+          <div class="table-wrap"><table class="admin-table"><thead><tr><th>CATEGORY</th><th>TYPE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="categoriesTableBody"></tbody></table></div>
+        </div>
       </section>
 
       <section class="section" id="orders">
@@ -160,7 +181,7 @@
         </div>
         <div class="form-grid">
           <label>Badge<input id="productBadge" placeholder="NEW / TRENDING"></label>
-          <label>Sizes<select id="productSizes" multiple size="5">
+          <label id="productSizesLabel">Sizes<select id="productSizes" multiple size="5">
             <option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option>
           </select></label>
         </div>
@@ -173,8 +194,8 @@
           <div id="productImagePreview" class="product-image-preview"></div>
         </div>
 
-        <div class="admin-subsection">
-          <div class="subsection-title"><strong>Stock by Size</strong><span>Enter available quantity for each selected size</span></div>
+        <div class="admin-subsection" id="productInventorySection">
+          <div class="subsection-title"><strong id="inventoryHeading">Stock by Size</strong><span id="inventoryHint">Enter available quantity for each selected size</span></div>
           <div id="inventoryGrid" class="inventory-grid"></div>
         </div>
 
@@ -189,6 +210,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=20261007-9"></script>
+  <script src="admin.js?v=20261031-1"></script>
 </body>
 </html>
