@@ -739,7 +739,6 @@ async function loadStoreProducts(){
     cart=cart.filter(item=>products.some(p=>String(p.id)===String(item.id)));
     saveCart();
     renderProducts();
-    renderProducts();
     console.log("Live catalog loaded:",products.length);
   }catch(e){console.error("Live catalog load failed:",e);}
 }
